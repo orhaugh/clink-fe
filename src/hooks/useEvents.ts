@@ -1,0 +1,67 @@
+import { useEffect, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { EVENTS_PATH } from '@/lib/api'
+import { qk } from './useApi'
+import type { ClinkEvent } from '@/lib/types'
+
+// Named SSE events clink publishes from the JobManager EventBus. clink sets the
+// SSE `event:` field to the type, so we attach a listener per type (EventSource
+// has no wildcard) plus the default `message` channel as a fallback.
+export const EVENT_TYPES = [
+  'jm.tm_registered',
+  'jm.tm_lost',
+  'jm.job_submitted',
+  'jm.job_completed',
+] as const
+
+export type ConnState = 'connecting' | 'open' | 'closed'
+
+const MAX_EVENTS = 200
+
+let eventSeq = 0
+
+export function useEvents() {
+  const qc = useQueryClient()
+  const [events, setEvents] = useState<ClinkEvent[]>([])
+  const [state, setState] = useState<ConnState>('connecting')
+  const esRef = useRef<EventSource | null>(null)
+
+  useEffect(() => {
+    const es = new EventSource(EVENTS_PATH)
+    esRef.current = es
+    setState('connecting')
+
+    const onOpen = () => setState('open')
+    const onError = () => setState(es.readyState === EventSource.CLOSED ? 'closed' : 'connecting')
+
+    const push = (type: string, data: string) => {
+      const ev: ClinkEvent = { id: `${Date.now()}-${eventSeq++}`, type, data, ts: Date.now() }
+      setEvents((prev) => [ev, ...prev].slice(0, MAX_EVENTS))
+      // Refresh the topology views the event affects.
+      if (type.startsWith('jm.tm')) {
+        void qc.invalidateQueries({ queryKey: qk.tms })
+        void qc.invalidateQueries({ queryKey: qk.cluster })
+      }
+      if (type.startsWith('jm.job')) {
+        void qc.invalidateQueries({ queryKey: qk.jobs })
+        void qc.invalidateQueries({ queryKey: qk.cluster })
+      }
+    }
+
+    es.addEventListener('open', onOpen)
+    es.addEventListener('error', onError)
+    es.addEventListener('message', (e) => push('message', (e as MessageEvent).data))
+    for (const t of EVENT_TYPES) {
+      es.addEventListener(t, (e) => push(t, (e as MessageEvent).data))
+    }
+
+    return () => {
+      es.removeEventListener('open', onOpen)
+      es.removeEventListener('error', onError)
+      es.close()
+      esRef.current = null
+    }
+  }, [qc])
+
+  return { events, state }
+}
