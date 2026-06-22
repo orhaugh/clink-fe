@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { StatCard } from '@/components/StatCard'
 import { ErrorState, LoadingState, EmptyState } from '@/components/States'
-import { avgFromSumCount, familyTotal, toView, type MetricFamily } from '@/lib/prometheus'
+import { avgFromSumCount, byLabel, familyTotal, toView, type MetricFamily } from '@/lib/prometheus'
 import { fmtBytes, fmtCount, fmtMs, pct } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -47,10 +47,15 @@ export function MetricsPanel({ text, isLoading, isError, error }: MetricsPanelPr
   const cpuPct = familyTotal(view, 'clink_process_cpu_percent')
   const fds = familyTotal(view, 'clink_process_open_fds')
   const threads = familyTotal(view, 'clink_process_threads')
-  const diskTotal = familyTotal(view, 'clink_disk_total_bytes')
-  const diskUsed = familyTotal(view, 'clink_disk_used_bytes')
-  const diskPct = diskTotal ? pct(diskUsed ?? 0, diskTotal) : undefined
-  const hasSystem = rss != null || cpuPct != null || diskTotal != null
+  // Disk is labeled per volume (workdir, checkpoint, ...). Join total + used by
+  // the volume label so each filesystem gets its own card.
+  const usedByVol = new Map(byLabel(view, 'clink_disk_used_bytes', 'volume').map((d) => [d.key, d.value]))
+  const disks = byLabel(view, 'clink_disk_total_bytes', 'volume').map((t) => ({
+    volume: t.key || 'disk',
+    total: t.value,
+    used: usedByVol.get(t.key) ?? 0,
+  }))
+  const hasSystem = rss != null || cpuPct != null || disks.length > 0
 
   return (
     <div className="space-y-5">
@@ -72,15 +77,19 @@ export function MetricsPanel({ text, isLoading, isError, error }: MetricsPanelPr
                 tone={cpuPct >= 90 ? 'warn' : 'default'}
               />
             )}
-            {diskTotal != null && (
-              <StatCard
-                label="Disk"
-                value={`${diskPct}%`}
-                sub={`${fmtBytes(diskUsed)} / ${fmtBytes(diskTotal)}`}
-                icon={HardDrive}
-                tone={diskPct != null && diskPct >= 85 ? 'danger' : 'default'}
-              />
-            )}
+            {disks.map((d) => {
+              const dp = pct(d.used, d.total)
+              return (
+                <StatCard
+                  key={d.volume}
+                  label={disks.length > 1 ? `Disk (${d.volume})` : 'Disk'}
+                  value={`${dp}%`}
+                  sub={`${fmtBytes(d.used)} / ${fmtBytes(d.total)}`}
+                  icon={HardDrive}
+                  tone={dp >= 85 ? 'danger' : 'default'}
+                />
+              )
+            })}
             {fds != null && <StatCard label="Open FDs" value={fmtCount(fds)} />}
             {threads != null && <StatCard label="Threads" value={fmtCount(threads)} />}
           </div>

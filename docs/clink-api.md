@@ -99,10 +99,16 @@ clink_process_cpu_ms_total            counter cumulative CPU (user+sys) ms
 clink_process_cpu_percent             gauge   CPU % over the last scrape interval (>100 = multi-core)
 clink_process_open_fds                gauge   open file descriptors
 clink_process_threads                 gauge   live threads
-clink_disk_total_bytes                gauge   filesystem capacity for the node's working dir
-clink_disk_free_bytes                 gauge   available bytes
-clink_disk_used_bytes                 gauge   used bytes
+clink_disk_total_bytes{volume}        gauge   filesystem capacity, per volume
+clink_disk_free_bytes{volume}         gauge   available bytes, per volume
+clink_disk_used_bytes{volume}         gauge   used bytes, per volume
 ```
+
+Disk gauges carry a `volume` label: `workdir` (the node's working directory)
+and, when the node is started with `--metrics-disk-path=<path>` (the JM defaults
+this to `--ha-dir`), `checkpoint` for the checkpoint/state mount. Volumes on the
+same filesystem are de-duplicated, so a single-disk node reports one `workdir`
+volume. The console renders one disk card per volume.
 
 The console renders these as a System card row on the Metrics page (JM) and each
 TaskManager's metrics tab, plus a rolling CPU/memory session chart.
