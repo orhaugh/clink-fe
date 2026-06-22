@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react'
-import { ChevronRight, Search } from 'lucide-react'
+import { ChevronRight, Cpu, HardDrive, MemoryStick, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { StatCard } from '@/components/StatCard'
 import { ErrorState, LoadingState, EmptyState } from '@/components/States'
 import { avgFromSumCount, familyTotal, toView, type MetricFamily } from '@/lib/prometheus'
-import { fmtCount, fmtMs } from '@/lib/format'
+import { fmtBytes, fmtCount, fmtMs, pct } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 interface MetricsPanelProps {
@@ -41,8 +41,52 @@ export function MetricsPanel({ text, isLoading, isError, error }: MetricsPanelPr
     (f) => !q || f.name.toLowerCase().includes(q.toLowerCase()) || f.help?.toLowerCase().includes(q.toLowerCase()),
   )
 
+  // Process + host resources (clink_process_* / clink_disk_*). Single-sample
+  // gauges, so familyTotal returns the value.
+  const rss = familyTotal(view, 'clink_process_resident_memory_bytes')
+  const cpuPct = familyTotal(view, 'clink_process_cpu_percent')
+  const fds = familyTotal(view, 'clink_process_open_fds')
+  const threads = familyTotal(view, 'clink_process_threads')
+  const diskTotal = familyTotal(view, 'clink_disk_total_bytes')
+  const diskUsed = familyTotal(view, 'clink_disk_used_bytes')
+  const diskPct = diskTotal ? pct(diskUsed ?? 0, diskTotal) : undefined
+  const hasSystem = rss != null || cpuPct != null || diskTotal != null
+
   return (
     <div className="space-y-5">
+      {hasSystem && (
+        <div>
+          <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            System
+          </div>
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+            {rss != null && (
+              <StatCard label="Memory (RSS)" value={fmtBytes(rss)} icon={MemoryStick} tone="info" />
+            )}
+            {cpuPct != null && (
+              <StatCard
+                label="CPU"
+                value={`${cpuPct}%`}
+                sub={cpuPct >= 100 ? `${(cpuPct / 100).toFixed(1)} cores` : 'of one core'}
+                icon={Cpu}
+                tone={cpuPct >= 90 ? 'warn' : 'default'}
+              />
+            )}
+            {diskTotal != null && (
+              <StatCard
+                label="Disk"
+                value={`${diskPct}%`}
+                sub={`${fmtBytes(diskUsed)} / ${fmtBytes(diskTotal)}`}
+                icon={HardDrive}
+                tone={diskPct != null && diskPct >= 85 ? 'danger' : 'default'}
+              />
+            )}
+            {fds != null && <StatCard label="Open FDs" value={fmtCount(fds)} />}
+            {threads != null && <StatCard label="Threads" value={fmtCount(threads)} />}
+          </div>
+        </div>
+      )}
+
       {cards.length > 0 && (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {cards.map((c) => (

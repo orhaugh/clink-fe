@@ -32,7 +32,7 @@ same-origin (dev: the Vite proxy; prod: serve the SPA from the JM, or add CORS).
 | GET | `/api/v1/tms/:id/logs` | `{ logs: LogRecord[] }` (proxied) |
 | GET | `/api/v1/logs` | `{ logs: LogRecord[] }`; `?level&limit&since_ms&source` |
 | GET | `/api/v1/logs/components` | `{ components: string[] }` |
-| GET | `/metrics` | Prometheus exposition text |
+| GET | `/metrics` | Prometheus exposition text (incl. system gauges, below) |
 | GET | `/api/v1/events` | SSE; event names `jm.tm_registered`, `jm.tm_lost`, `jm.job_submitted`, `jm.job_completed` |
 
 Proxy routes return 404 if the TM is unknown/lost/has no HTTP listener, 502 if
@@ -86,6 +86,26 @@ These were previously gaps; the clink backend now supports them:
 - **CORS.** Start the node with `--http-cors-origin=<origin>` (e.g. `*`) to send
   `Access-Control-Allow-*` and answer OPTIONS preflight, so a standalone console
   can call the API cross-origin without the dev proxy.
+
+## System metrics
+
+Both JM and TM `/metrics` carry per-process resource gauges, sampled on each
+scrape (Linux `/proc`, macOS mach; degrade silently where unavailable):
+
+```
+clink_process_resident_memory_bytes   gauge   RSS (physical) bytes
+clink_process_virtual_memory_bytes    gauge   virtual size bytes
+clink_process_cpu_ms_total            counter cumulative CPU (user+sys) ms
+clink_process_cpu_percent             gauge   CPU % over the last scrape interval (>100 = multi-core)
+clink_process_open_fds                gauge   open file descriptors
+clink_process_threads                 gauge   live threads
+clink_disk_total_bytes                gauge   filesystem capacity for the node's working dir
+clink_disk_free_bytes                 gauge   available bytes
+clink_disk_used_bytes                 gauge   used bytes
+```
+
+The console renders these as a System card row on the Metrics page (JM) and each
+TaskManager's metrics tab, plus a rolling CPU/memory session chart.
 
 ## Remaining notes
 

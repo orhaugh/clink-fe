@@ -54,8 +54,10 @@ clink_node --role=jm --port=7070 --http-port=8081 --http-cors-origin='*'
 - **Submit** - upload a compiled job `.so` (multipart) or post a JSON job spec.
 - **Logs** - cluster-wide log explorer with level / source / since filters and
   follow mode, aggregating the JM and every TaskManager.
-- **Metrics** - parsed Prometheus exposition with charts for checkpoints,
-  throughput, state, and async I/O.
+- **Metrics** - parsed Prometheus exposition: per-node system resources (memory,
+  CPU, disk, file descriptors, threads), checkpoint stats, rolling session
+  charts, and a searchable metric-family table. System cards also appear on each
+  TaskManager's metrics tab.
 
 ## API source of truth
 
