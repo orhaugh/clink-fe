@@ -1,11 +1,14 @@
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft, Ban, GitCommitHorizontal } from 'lucide-react'
-import { useJob, useCancelJob } from '@/hooks/useApi'
+import { AlertTriangle, ArrowLeft, Ban, Camera, GitCommitHorizontal, Scaling } from 'lucide-react'
+import { useJob, useCancelJob, useRescaleJob, useSavepointJob } from '@/hooks/useApi'
 import { PageHeader } from '@/components/PageHeader'
 import { StatCard } from '@/components/StatCard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   Dialog,
@@ -20,20 +23,13 @@ import {
 import { ErrorState, LoadingState, EmptyState } from '@/components/States'
 import { JobStateBadge } from '@/components/StatusBadge'
 import { toast } from '@/components/ui/sonner'
-import { deriveJobState } from '@/lib/types'
-import { pct } from '@/lib/format'
+import { deriveJobState, type JobDetail as JobDetailT } from '@/lib/types'
+import { fmtDateTime, pct } from '@/lib/format'
 
 export function JobDetail() {
   const { id = '0' } = useParams()
   const jobId = Number(id)
   const job = useJob(jobId)
-  const cancel = useCancelJob()
-
-  const onCancel = async () => {
-    const ack = await cancel.mutateAsync(jobId)
-    if (ack.ok) toast.success(`Job #${jobId} cancelling`, { description: ack.message })
-    else toast.error(`Cancel failed`, { description: ack.message })
-  }
 
   if (job.isError) return <ErrorState error={job.error} />
   if (job.isLoading || !job.data) return <LoadingState />
@@ -41,7 +37,6 @@ export function JobDetail() {
   const j = job.data
   const state = deriveJobState(j)
   const progress = j.expected_completion > 0 ? pct(j.completed_count, j.expected_completion) : 0
-  const canCancel = state === 'running'
 
   return (
     <div className="space-y-6">
@@ -55,37 +50,7 @@ export function JobDetail() {
             <JobStateBadge state={state} />
           </span>
         }
-        actions={
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="destructive" size="sm" disabled={!canCancel || cancel.isPending}>
-                <Ban className="h-4 w-4" />
-                Cancel job
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Cancel job #{j.id}?</DialogTitle>
-                <DialogDescription>
-                  This requests a graceful cancel. Subtasks drain via their cancellation paths; the job will not
-                  restart. Savepoints and rescale are CLI-only and not available here.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline" size="sm">
-                    Keep running
-                  </Button>
-                </DialogClose>
-                <DialogClose asChild>
-                  <Button variant="destructive" size="sm" onClick={onCancel}>
-                    Cancel job
-                  </Button>
-                </DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        }
+        actions={<JobActions job={j} running={state === 'running'} />}
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -97,33 +62,10 @@ export function JobDetail() {
           sub={j.pending_checkpoint_ids.length > 0 ? `${j.pending_checkpoint_ids.length} pending` : 'none pending'}
           icon={GitCommitHorizontal}
         />
-        <StatCard label="Errors" value={j.errors.length} tone={j.errors.length > 0 ? 'danger' : 'ok'} />
+        <StatCard label="Failures" value={j.subtask_errors.length || j.errors.length} tone={j.errors.length > 0 ? 'danger' : 'ok'} />
       </div>
 
-      {j.errors.length > 0 && (
-        <Card className="border-danger/40">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-danger">
-              <AlertTriangle className="h-4 w-4" />
-              Failure messages
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {j.errors.map((e, i) => (
-              <pre
-                key={i}
-                className="overflow-auto whitespace-pre-wrap rounded-md border border-danger/30 bg-danger/[0.05] p-3 font-mono text-xs text-danger/90"
-              >
-                {e}
-              </pre>
-            ))}
-            <p className="text-xs text-muted-foreground">
-              These are the operator-failure summaries the engine captures. Full per-subtask stack traces are not
-              currently exposed over HTTP; check the owning TaskManager's logs for the surrounding context.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      <FailuresPanel job={j} />
 
       <Card>
         <CardHeader>
@@ -162,21 +104,189 @@ export function JobDetail() {
           )}
         </CardContent>
       </Card>
-
-      {j.pending_checkpoint_ids.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Pending checkpoints</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            {j.pending_checkpoint_ids.map((c) => (
-              <Badge key={c} variant="warn">
-                #{c}
-              </Badge>
-            ))}
-          </CardContent>
-        </Card>
-      )}
     </div>
+  )
+}
+
+function JobActions({ job, running }: { job: JobDetailT; running: boolean }) {
+  const cancel = useCancelJob()
+  const savepoint = useSavepointJob()
+
+  const onSavepoint = async () => {
+    const t = toast.loading(`Taking savepoint of job #${job.id}...`)
+    const ack = await savepoint.mutateAsync({ id: job.id })
+    if (ack.ok) {
+      toast.success(`Savepoint ${ack.checkpoint_id}`, { id: t, description: ack.checkpoint_dir || ack.message })
+    } else {
+      toast.error('Savepoint failed', { id: t, description: ack.message })
+    }
+  }
+
+  const onCancel = async () => {
+    const ack = await cancel.mutateAsync(job.id)
+    if (ack.ok) toast.success(`Job #${job.id} cancelling`, { description: ack.message })
+    else toast.error('Cancel failed', { description: ack.message })
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button variant="outline" size="sm" onClick={onSavepoint} disabled={savepoint.isPending}>
+        <Camera className="h-4 w-4" />
+        Savepoint
+      </Button>
+      <RescaleDialog job={job} disabled={!running} />
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button variant="destructive" size="sm" disabled={!running || cancel.isPending}>
+            <Ban className="h-4 w-4" />
+            Cancel
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel job #{job.id}?</DialogTitle>
+            <DialogDescription>
+              Requests a graceful cancel. Subtasks drain via their cancellation paths; the job will not restart.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" size="sm">
+                Keep running
+              </Button>
+            </DialogClose>
+            <DialogClose asChild>
+              <Button variant="destructive" size="sm" onClick={onCancel}>
+                Cancel job
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+function RescaleDialog({ job, disabled }: { job: JobDetailT; disabled: boolean }) {
+  // Current parallelism per role = count of that role's subtasks.
+  const current: Record<string, number> = {}
+  for (const t of job.tasks) current[t.role] = (current[t.role] ?? 0) + 1
+  const roles = Object.keys(current).sort()
+
+  const [open, setOpen] = useState(false)
+  const [targets, setTargets] = useState<Record<string, number>>(current)
+  const rescale = useRescaleJob()
+
+  const onOpen = (o: boolean) => {
+    if (o) setTargets(current)
+    setOpen(o)
+  }
+
+  const onSubmit = async () => {
+    const ack = await rescale.mutateAsync({ id: job.id, roleParallelism: targets })
+    if (ack.ok) toast.success(`Job #${job.id} rescaled`, { description: ack.message })
+    else toast.error('Rescale rejected', { description: ack.message })
+    setOpen(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" disabled={disabled}>
+          <Scaling className="h-4 w-4" />
+          Rescale
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Rescale job #{job.id}</DialogTitle>
+          <DialogDescription>
+            Set a new parallelism per role. Scale-up only: each value must be a positive multiple of the current
+            parallelism. Keyed state is preserved across the rescale.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          {roles.length === 0 ? (
+            <EmptyState label="No roles to rescale" />
+          ) : (
+            roles.map((role) => (
+              <div key={role} className="flex items-center justify-between gap-4">
+                <Label className="font-mono">{role}</Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">now {current[role]}</span>
+                  <Input
+                    type="number"
+                    min={current[role]}
+                    className="w-24"
+                    value={targets[role] ?? current[role]}
+                    onChange={(e) => setTargets((p) => ({ ...p, [role]: Number(e.target.value) }))}
+                  />
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline" size="sm">
+              Cancel
+            </Button>
+          </DialogClose>
+          <Button size="sm" onClick={onSubmit} disabled={rescale.isPending || roles.length === 0}>
+            {rescale.isPending ? 'Rescaling...' : 'Apply rescale'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function FailuresPanel({ job }: { job: JobDetailT }) {
+  if (job.subtask_errors.length === 0 && job.errors.length === 0) return null
+
+  return (
+    <Card className="border-danger/40">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-danger">
+          <AlertTriangle className="h-4 w-4" />
+          Failures &amp; stack traces
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {job.subtask_errors.length > 0
+          ? job.subtask_errors.map((se, i) => (
+              <div key={i} className="rounded-md border border-danger/30 bg-danger/[0.05]">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-danger/20 px-3 py-2 text-xs">
+                  <span className="font-mono font-medium text-danger">
+                    {se.role}[{se.subtask_idx}]
+                  </span>
+                  {se.tm_id && (
+                    <Link to={`/task-managers/${se.tm_id}`} className="font-mono text-primary hover:underline">
+                      {se.tm_id}
+                    </Link>
+                  )}
+                  <Badge variant="muted">attempt {se.attempt}</Badge>
+                  {se.ts_ms > 0 && <span className="text-muted-foreground">{fmtDateTime(se.ts_ms)}</span>}
+                </div>
+                <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words p-3 font-mono text-xs text-danger/90">
+                  {se.message}
+                </pre>
+              </div>
+            ))
+          : job.errors.map((e, i) => (
+              <pre
+                key={i}
+                className="overflow-auto whitespace-pre-wrap rounded-md border border-danger/30 bg-danger/[0.05] p-3 font-mono text-xs text-danger/90"
+              >
+                {e}
+              </pre>
+            ))}
+        <p className="text-xs text-muted-foreground">
+          Messages carry the operator exception text and, where the node toolchain supports it, a capture-site stack
+          trace. The trace is taken in the runner thread (post-unwind), so it shows the runner to operator call chain
+          rather than the exact throw frame.
+        </p>
+      </CardContent>
+    </Card>
   )
 }

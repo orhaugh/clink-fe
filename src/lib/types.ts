@@ -45,6 +45,15 @@ export interface JobTask {
   tm_id: string
 }
 
+export interface SubtaskErrorRecord {
+  role: string
+  subtask_idx: number
+  tm_id: string
+  attempt: number // job restart generation at time of failure (0 = first run)
+  ts_ms: number
+  message: string // operator exception text; includes a capture-site stack trace where available
+}
+
 export interface JobDetail {
   id: number
   expected_completion: number
@@ -52,6 +61,7 @@ export interface JobDetail {
   completion_signalled: boolean
   cancel_requested: boolean
   errors: string[]
+  subtask_errors: SubtaskErrorRecord[]
   tasks: JobTask[]
   latest_completed_checkpoint_id: number
   pending_checkpoint_ids: number[]
@@ -103,6 +113,20 @@ export interface SubmitAck {
 }
 
 export interface CancelAck {
+  job_id: number
+  ok: boolean
+  message: string
+}
+
+export interface SavepointAck {
+  job_id: number
+  ok: boolean
+  checkpoint_id: number
+  checkpoint_dir: string
+  message: string
+}
+
+export interface RescaleAck {
   job_id: number
   ok: boolean
   message: string

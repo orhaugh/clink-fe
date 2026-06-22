@@ -35,6 +35,13 @@ The JobManager is the single entry point: it proxies per-TaskManager routes
 be started with `--http-port` for their detail/logs/metrics to be reachable
 through the JM proxy.
 
+Alternatively, skip the dev proxy and point the console straight at the JM by
+enabling CORS on the node:
+
+```bash
+clink_node --role=jm --port=7070 --http-port=8081 --http-cors-origin='*'
+```
+
 ## What it shows
 
 - **Overview** - cluster rollup (slots, jobs), TaskManager fleet, recent jobs,
@@ -42,7 +49,8 @@ through the JM proxy.
 - **TaskManagers** - the fleet, plus per-TM detail: running subtasks, config,
   parsed metrics, and logs.
 - **Jobs** - submitted jobs, plus per-job detail: subtask placement, checkpoint
-  progress, captured error messages, and cancel.
+  progress, structured per-subtask failures with stack traces, and savepoint /
+  rescale / cancel actions.
 - **Submit** - upload a compiled job `.so` (multipart) or post a JSON job spec.
 - **Logs** - cluster-wide log explorer with level / source / since filters and
   follow mode, aggregating the JM and every TaskManager.

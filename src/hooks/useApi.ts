@@ -91,6 +91,25 @@ export function useCancelJob() {
   })
 }
 
+export function useSavepointJob() {
+  return useMutation({
+    mutationFn: ({ id, timeoutMs }: { id: number; timeoutMs?: number }) => api.savepointJob(id, timeoutMs),
+  })
+}
+
+export function useRescaleJob() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, roleParallelism }: { id: number; roleParallelism: Record<string, number> }) =>
+      api.rescaleJob(id, roleParallelism),
+    onSuccess: (_ack, { id }) => {
+      void qc.invalidateQueries({ queryKey: qk.job(id) })
+      void qc.invalidateQueries({ queryKey: qk.jobs })
+      void qc.invalidateQueries({ queryKey: qk.cluster })
+    },
+  })
+}
+
 export function useSubmitJobSo() {
   const qc = useQueryClient()
   return useMutation({

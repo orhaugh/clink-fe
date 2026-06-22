@@ -11,6 +11,8 @@ import type {
   JobDetail,
   JobSummary,
   LogRecord,
+  RescaleAck,
+  SavepointAck,
   SubmitAck,
   SubtaskRecord,
   TmConfig,
@@ -76,8 +78,20 @@ export const api = {
   job: (id: number, s?: AbortSignal) => getJson<JobDetail>(`/api/v1/jobs/${id}`, s),
   cancelJob: async (id: number): Promise<CancelAck> => {
     const res = await fetch(`/api/v1/jobs/${id}/cancel`, { method: 'POST' })
-    const body = (await res.json()) as CancelAck
-    return body
+    return (await res.json()) as CancelAck
+  },
+  savepointJob: async (id: number, timeoutMs?: number): Promise<SavepointAck> => {
+    const qs = timeoutMs != null ? `?timeout_ms=${timeoutMs}` : ''
+    const res = await fetch(`/api/v1/jobs/${id}/savepoint${qs}`, { method: 'POST' })
+    return (await res.json()) as SavepointAck
+  },
+  rescaleJob: async (id: number, roleParallelism: Record<string, number>): Promise<RescaleAck> => {
+    const res = await fetch(`/api/v1/jobs/${id}/rescale`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(roleParallelism),
+    })
+    return (await res.json()) as RescaleAck
   },
   submitJobSo: async (file: File, jobName?: string): Promise<SubmitAck> => {
     const fd = new FormData()
