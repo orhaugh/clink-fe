@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, Ban, Camera, GitCommitHorizontal, Scaling } from 'lucide-react'
-import { useJob, useCancelJob, useRescaleJob, useSavepointJob } from '@/hooks/useApi'
+import { useJob, useJobGraph, useCancelJob, useRescaleJob, useSavepointJob } from '@/hooks/useApi'
+import { JobGraph } from '@/components/JobGraph'
 import { PageHeader } from '@/components/PageHeader'
 import { StatCard } from '@/components/StatCard'
 import { Button } from '@/components/ui/button'
@@ -64,6 +65,8 @@ export function JobDetail() {
         />
         <StatCard label="Failures" value={j.subtask_errors.length || j.errors.length} tone={j.errors.length > 0 ? 'danger' : 'ok'} />
       </div>
+
+      <GraphSection jobId={j.id} />
 
       <FailuresPanel job={j} />
 
@@ -238,6 +241,51 @@ function RescaleDialog({ job, disabled }: { job: JobDetailT; disabled: boolean }
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function GraphSection({ jobId }: { jobId: number }) {
+  const graph = useJobGraph(jobId)
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Topology</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {graph.isError ? (
+          <ErrorState error={graph.error} />
+        ) : graph.isLoading || !graph.data ? (
+          <LoadingState label="Loading graph" />
+        ) : !graph.data.available || graph.data.nodes.length === 0 ? (
+          <EmptyState
+            label="No topology for this job"
+            hint="The job graph is retained from submission; jobs submitted before graph retention show nothing here."
+          />
+        ) : (
+          <>
+            <JobGraph graph={graph.data} />
+            <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
+              <Legend swatch="bg-info" label="source" />
+              <Legend swatch="bg-ok" label="sink" />
+              <Legend swatch="bg-warn" label="keyed (key glyph)" />
+              <span className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 bg-muted-foreground" /> forward</span>
+              <span className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 border-t border-dashed border-warn" /> rebalance</span>
+              <span className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 bg-primary" /> hash-partitioned</span>
+              <span>×N = parallelism; chips = TaskManager placement</span>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function Legend({ swatch, label }: { swatch: string; label: string }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className={`inline-block h-2.5 w-2.5 rounded-full ${swatch}`} />
+      {label}
+    </span>
   )
 }
 

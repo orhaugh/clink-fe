@@ -9,6 +9,7 @@ import type {
   Health,
   JmConfig,
   JobDetail,
+  JobGraphDetail,
   JobSummary,
   LogRecord,
   RescaleAck,
@@ -76,6 +77,7 @@ export const api = {
 
   jobs: (s?: AbortSignal) => getJson<{ jobs: JobSummary[] }>('/api/v1/jobs', s).then((r) => r.jobs),
   job: (id: number, s?: AbortSignal) => getJson<JobDetail>(`/api/v1/jobs/${id}`, s),
+  jobGraph: (id: number, s?: AbortSignal) => getJson<JobGraphDetail>(`/api/v1/jobs/${id}/graph`, s),
   cancelJob: async (id: number): Promise<CancelAck> => {
     const res = await fetch(`/api/v1/jobs/${id}/cancel`, { method: 'POST' })
     return (await res.json()) as CancelAck

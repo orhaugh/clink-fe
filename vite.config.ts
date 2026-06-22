@@ -32,6 +32,7 @@ export default defineConfig(({ mode }) => {
           // small and the charting lib only loads when its routes are hit.
           manualChunks: {
             recharts: ['recharts'],
+            graph: ['@xyflow/react', '@dagrejs/dagre'],
             vendor: ['react', 'react-dom', 'react-router-dom', '@tanstack/react-query'],
           },
         },

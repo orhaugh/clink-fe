@@ -14,6 +14,7 @@ export const qk = {
   jmConfig: ['jmConfig'] as const,
   jobs: ['jobs'] as const,
   job: (id: number) => ['job', id] as const,
+  jobGraph: (id: number) => ['jobGraph', id] as const,
   tms: ['tms'] as const,
   tm: (id: string) => ['tm', id] as const,
   tmSubtasks: (id: string) => ['tmSubtasks', id] as const,
@@ -39,6 +40,14 @@ export const useJobs = () =>
 
 export const useJob = (id: number) =>
   useQuery({ queryKey: qk.job(id), queryFn: ({ signal }) => api.job(id, signal), refetchInterval: DETAIL })
+
+export const useJobGraph = (id: number) =>
+  useQuery({
+    queryKey: qk.jobGraph(id),
+    queryFn: ({ signal }) => api.jobGraph(id, signal),
+    // Topology is structural; poll slowly (placement can shift on rescale).
+    refetchInterval: 8000,
+  })
 
 export const useTms = () =>
   useQuery({ queryKey: qk.tms, queryFn: ({ signal }) => api.tms(signal), refetchInterval: TOPOLOGY })

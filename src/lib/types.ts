@@ -67,6 +67,38 @@ export interface JobDetail {
   pending_checkpoint_ids: number[]
 }
 
+export interface GraphSubtaskPlacement {
+  subtask_idx: number
+  tm_id: string
+}
+
+export interface GraphNode {
+  id: string
+  op_type: string
+  display_name: string
+  uid: string
+  kind: 'source' | 'operator' | 'sink' | string
+  parallelism: number
+  out_channel: string
+  keyed: boolean
+  subtasks: GraphSubtaskPlacement[]
+}
+
+export interface GraphEdge {
+  from: string
+  to: string
+  routing: 'forward' | 'hash' | 'rebalance' | string
+  channel: string
+}
+
+export interface JobGraphDetail {
+  job_id: number
+  topology_version: number
+  available: boolean
+  nodes: GraphNode[]
+  edges: GraphEdge[]
+}
+
 export interface TmSnapshot {
   tm_id: string
   data_host: string
