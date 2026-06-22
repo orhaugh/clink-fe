@@ -70,6 +70,8 @@ export interface JobDetail {
 export interface GraphSubtaskPlacement {
   subtask_idx: number
   tm_id: string
+  started_at_unix_ms?: number
+  finished_at_unix_ms?: number
 }
 
 export interface GraphNode {
@@ -132,6 +134,7 @@ export interface OperatorRuntime {
   input_capacity: number
   has_watermark: boolean
   watermark_ms?: number
+  accumulators: Record<string, number>
   subtasks: GraphSubtaskPlacement[]
   per_tm: OperatorTmRow[]
 }

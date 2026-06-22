@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { fmtCount, fmtBytes, fmtRelative } from '@/lib/format'
+import { fmtCount, fmtBytes, fmtRelative, fmtMs } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { OperatorRuntime } from '@/lib/types'
 
@@ -72,6 +72,19 @@ export function OperatorDetail({ op, onClose }: { op: OperatorRuntime | null; on
                 </div>
               )}
 
+              {op.accumulators && Object.keys(op.accumulators).length > 0 && (
+                <div>
+                  <div className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                    accumulators
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {Object.entries(op.accumulators).map(([name, val]) => (
+                      <Stat key={name} label={name} value={fmtCount(val)} hint={String(val)} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {op.subtasks.length > 0 && (
                 <div>
                   <div className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -83,15 +96,26 @@ export function OperatorDetail({ op, onClose }: { op: OperatorRuntime | null; on
                         <tr>
                           <th className="px-2 py-1 text-left">subtask</th>
                           <th className="px-2 py-1 text-left">task manager</th>
+                          <th className="px-2 py-1 text-left">started</th>
+                          <th className="px-2 py-1 text-right">duration</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {op.subtasks.map((s) => (
-                          <tr key={`${s.subtask_idx}-${s.tm_id}`} className="border-t border-border/60">
-                            <td className="px-2 py-1">#{s.subtask_idx}</td>
-                            <td className="px-2 py-1">{s.tm_id}</td>
-                          </tr>
-                        ))}
+                        {op.subtasks.map((s) => {
+                          const started = s.started_at_unix_ms || 0
+                          const finished = s.finished_at_unix_ms || 0
+                          const dur = started ? (finished || Date.now()) - started : 0
+                          return (
+                            <tr key={`${s.subtask_idx}-${s.tm_id}`} className="border-t border-border/60">
+                              <td className="px-2 py-1">#{s.subtask_idx}</td>
+                              <td className="px-2 py-1">{s.tm_id}</td>
+                              <td className="px-2 py-1">{started ? fmtRelative(started) : '-'}</td>
+                              <td className="px-2 py-1 text-right">
+                                {started ? `${finished ? '' : '~'}${fmtMs(dur)}` : '-'}
+                              </td>
+                            </tr>
+                          )
+                        })}
                       </tbody>
                     </table>
                   </div>
