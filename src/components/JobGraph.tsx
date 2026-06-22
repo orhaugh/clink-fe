@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import {
   Background,
   BackgroundVariant,
@@ -6,9 +6,12 @@ import {
   Handle,
   Position,
   ReactFlow,
+  useEdgesState,
+  useNodesState,
   type Edge,
   type Node,
   type NodeProps,
+  type ReactFlowInstance,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import dagre from '@dagrejs/dagre'
@@ -17,9 +20,8 @@ import { cn } from '@/lib/utils'
 import type { GraphEdge, GraphNode, JobGraphDetail } from '@/lib/types'
 
 const NODE_W = 230
-const NODE_H = 96
 
-type OpData = { node: GraphNode; failed: boolean }
+type OpData = { node: GraphNode }
 
 const kindStyle: Record<string, { ring: string; icon: typeof Database; label: string }> = {
   source: { ring: 'border-info/60', icon: Database, label: 'source' },
@@ -27,22 +29,22 @@ const kindStyle: Record<string, { ring: string; icon: typeof Database; label: st
   operator: { ring: 'border-border', icon: Cog, label: 'operator' },
 }
 
+// Estimate the rendered height so dagre spaces ranks correctly (placement
+// footer is conditional; chip rows wrap on multi-TM nodes).
+function nodeHeight(node: GraphNode): number {
+  return 64 + (node.subtasks.length > 0 ? 30 : 0)
+}
+
 function OperatorNode({ data }: NodeProps) {
-  const { node, failed } = data as OpData
+  const { node } = data as OpData
   const ks = kindStyle[node.kind] ?? kindStyle.operator
   const Icon = ks.icon
-  // Group placement by TaskManager: "tm-1 x3".
   const perTm = new Map<string, number>()
   for (const s of node.subtasks) perTm.set(s.tm_id, (perTm.get(s.tm_id) ?? 0) + 1)
   const label = node.display_name || node.op_type
 
   return (
-    <div
-      className={cn(
-        'w-[230px] rounded-lg border-2 bg-card shadow-md',
-        failed ? 'border-danger/70' : ks.ring,
-      )}
-    >
+    <div className={cn('w-[230px] rounded-lg border-2 bg-card shadow-md', ks.ring)}>
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-muted-foreground" />
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -88,19 +90,23 @@ function layout(graph: JobGraphDetail): { nodes: Node[]; edges: Edge[] } {
   const g = new dagre.graphlib.Graph()
   g.setGraph({ rankdir: 'LR', nodesep: 36, ranksep: 90, marginx: 12, marginy: 12 })
   g.setDefaultEdgeLabel(() => ({}))
-  for (const n of graph.nodes) g.setNode(n.id, { width: NODE_W, height: NODE_H })
+  const heights = new Map<string, number>()
+  for (const n of graph.nodes) {
+    const h = nodeHeight(n)
+    heights.set(n.id, h)
+    g.setNode(n.id, { width: NODE_W, height: h })
+  }
   for (const e of graph.edges) g.setEdge(e.from, e.to)
   dagre.layout(g)
 
-  const failed = false // status overlay is layered by the caller via node data if needed
   const nodes: Node[] = graph.nodes.map((n) => {
     const p = g.node(n.id)
+    const h = heights.get(n.id) ?? 64
     return {
       id: n.id,
       type: 'op',
-      position: { x: (p?.x ?? 0) - NODE_W / 2, y: (p?.y ?? 0) - NODE_H / 2 },
-      data: { node: n, failed } satisfies OpData,
-      draggable: true,
+      position: { x: (p?.x ?? 0) - NODE_W / 2, y: (p?.y ?? 0) - h / 2 },
+      data: { node: n } satisfies OpData,
     }
   })
 
@@ -121,17 +127,58 @@ function layout(graph: JobGraphDetail): { nodes: Node[]; edges: Edge[] } {
 }
 
 export function JobGraph({ graph, className }: { graph: JobGraphDetail; className?: string }) {
-  const { nodes, edges } = useMemo(() => layout(graph), [graph])
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
+  const rf = useRef<ReactFlowInstance<Node, Edge> | null>(null)
+
+  // A structural signature: re-layout only when nodes/edges change, not on
+  // every poll. Placement/parallelism updates merge into existing positions.
+  const topoKey = useMemo(
+    () =>
+      `${graph.topology_version}|${graph.nodes.map((n) => n.id).join(',')}|${graph.edges
+        .map((e) => `${e.from}>${e.to}`)
+        .join(',')}`,
+    [graph],
+  )
+
+  // Topology changed: lay out fresh + refit the viewport.
+  useEffect(() => {
+    const laid = layout(graph)
+    setNodes(laid.nodes)
+    setEdges(laid.edges)
+    const id = requestAnimationFrame(() => rf.current?.fitView({ padding: 0.15 }))
+    return () => cancelAnimationFrame(id)
+    // graph is read but we deliberately re-run only on a topology change so a
+    // user's pan/zoom/drag survives the 8s placement polls.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topoKey])
+
+  // Placement/parallelism poll (same topology): merge node data in place so the
+  // TaskManager chips + ×N badge update live without moving or re-fitting.
+  useEffect(() => {
+    const byId = new Map(graph.nodes.map((n) => [n.id, n]))
+    setNodes((prev) =>
+      prev.map((n) => {
+        const fresh = byId.get(n.id)
+        return fresh ? { ...n, data: { node: fresh } satisfies OpData } : n
+      }),
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [graph])
 
   return (
     <div className={cn('h-[460px] w-full overflow-hidden rounded-lg border bg-background', className)}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onInit={(inst) => {
+          rf.current = inst
+          inst.fitView({ padding: 0.15 })
+        }}
         nodeTypes={nodeTypes}
         colorMode="dark"
-        fitView
-        fitViewOptions={{ padding: 0.15 }}
         proOptions={{ hideAttribution: true }}
         minZoom={0.2}
         maxZoom={1.5}

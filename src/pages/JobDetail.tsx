@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, Ban, Camera, GitCommitHorizontal, Scaling } from 'lucide-react'
 import { useJob, useJobGraph, useCancelJob, useRescaleJob, useSavepointJob } from '@/hooks/useApi'
-import { JobGraph } from '@/components/JobGraph'
+
+// Lazy so React Flow + dagre (their own chunk) only load when a job's graph is
+// actually viewed, not on every page.
+const JobGraph = lazy(() => import('@/components/JobGraph').then((m) => ({ default: m.JobGraph })))
 import { PageHeader } from '@/components/PageHeader'
 import { StatCard } from '@/components/StatCard'
 import { Button } from '@/components/ui/button'
@@ -263,7 +266,9 @@ function GraphSection({ jobId }: { jobId: number }) {
           />
         ) : (
           <>
-            <JobGraph graph={graph.data} />
+            <Suspense fallback={<LoadingState label="Loading graph" />}>
+              <JobGraph graph={graph.data} />
+            </Suspense>
             <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
               <Legend swatch="bg-info" label="source" />
               <Legend swatch="bg-ok" label="sink" />
