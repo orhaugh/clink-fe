@@ -15,13 +15,15 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import dagre from '@dagrejs/dagre'
-import { Database, KeyRound, Workflow as Cog, ArrowRightToLine, Server } from 'lucide-react'
+import { Database, KeyRound, Workflow as Cog, ArrowRightToLine, Server, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { GraphEdge, GraphNode, JobGraphDetail } from '@/lib/types'
+import { fmtCount } from '@/lib/format'
+import type { GraphEdge, GraphNode, JobGraphDetail, OperatorRuntime } from '@/lib/types'
 
-const NODE_W = 230
+const NODE_W = 240
 
-type OpData = { node: GraphNode }
+export type OpRate = { in: number; out: number }
+type OpData = { node: GraphNode; stats?: OperatorRuntime; rate?: OpRate }
 
 const kindStyle: Record<string, { ring: string; icon: typeof Database; label: string }> = {
   source: { ring: 'border-info/60', icon: Database, label: 'source' },
@@ -29,22 +31,37 @@ const kindStyle: Record<string, { ring: string; icon: typeof Database; label: st
   operator: { ring: 'border-border', icon: Cog, label: 'operator' },
 }
 
-// Estimate the rendered height so dagre spaces ranks correctly (placement
-// footer is conditional; chip rows wrap on multi-TM nodes).
+// Backpressure ratio -> colour. Green flowing, amber filling, red saturated.
+function bpColor(ratio: number): string {
+  if (ratio >= 0.9) return 'bg-danger'
+  if (ratio >= 0.5) return 'bg-warn'
+  return 'bg-ok'
+}
+
+// Estimate rendered height so dagre spaces ranks correctly (the metrics row +
+// placement footer are conditional).
 function nodeHeight(node: GraphNode): number {
-  return 64 + (node.subtasks.length > 0 ? 30 : 0)
+  return 86 + (node.subtasks.length > 0 ? 30 : 0)
 }
 
 function OperatorNode({ data }: NodeProps) {
-  const { node } = data as OpData
+  const { node, stats, rate } = data as OpData
   const ks = kindStyle[node.kind] ?? kindStyle.operator
   const Icon = ks.icon
   const perTm = new Map<string, number>()
   for (const s of node.subtasks) perTm.set(s.tm_id, (perTm.get(s.tm_id) ?? 0) + 1)
   const label = node.display_name || node.op_type
+  const cap = stats?.input_capacity ?? 0
+  const bp = cap > 0 ? (stats?.input_depth ?? 0) / cap : 0
 
   return (
-    <div className={cn('w-[230px] rounded-lg border-2 bg-card shadow-md', ks.ring)}>
+    <div
+      className={cn(
+        'w-[240px] cursor-pointer rounded-lg border-2 bg-card shadow-md transition-colors hover:border-primary/70',
+        ks.ring,
+        stats?.stale && 'opacity-70',
+      )}
+    >
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-muted-foreground" />
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -61,6 +78,43 @@ function OperatorNode({ data }: NodeProps) {
           {node.out_channel}
         </span>
         <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70">{ks.label}</span>
+      </div>
+      {/* Live metrics row: records/sec in & out, backpressure dot, drop badge. */}
+      <div className="flex flex-wrap items-center gap-1.5 border-t border-border px-3 py-1.5 font-mono text-[10px]">
+        {stats?.metrics_available ? (
+          <>
+            {node.kind !== 'source' && (
+              <span className="text-info" title="records in / sec">
+                ▸{rate ? fmtCount(rate.in) : '0'}/s
+              </span>
+            )}
+            {node.kind !== 'sink' && (
+              <span className="text-ok" title="records out / sec">
+                {rate ? fmtCount(rate.out) : '0'}/s▸
+              </span>
+            )}
+            {cap > 0 && (
+              <span className="ml-auto flex items-center gap-1 text-muted-foreground" title={`backpressure ${(bp * 100).toFixed(0)}%`}>
+                <span className={cn('inline-block h-2 w-2 rounded-full', bpColor(bp))} />
+              </span>
+            )}
+            {stats.records_dropped > 0 && (
+              <span className="rounded bg-danger/20 px-1 py-0.5 text-danger" title="records dropped">
+                ⚠ {fmtCount(stats.records_dropped)}
+              </span>
+            )}
+          </>
+        ) : (
+          <span className="flex items-center gap-1 text-muted-foreground/60">
+            {stats?.stale ? (
+              <>
+                <AlertTriangle className="h-3 w-3" /> stale
+              </>
+            ) : (
+              'no metrics'
+            )}
+          </span>
+        )}
       </div>
       {perTm.size > 0 && (
         <div className="flex flex-wrap items-center gap-1 border-t border-border px-3 py-1.5">
@@ -101,7 +155,7 @@ function layout(graph: JobGraphDetail): { nodes: Node[]; edges: Edge[] } {
 
   const nodes: Node[] = graph.nodes.map((n) => {
     const p = g.node(n.id)
-    const h = heights.get(n.id) ?? 64
+    const h = heights.get(n.id) ?? 86
     return {
       id: n.id,
       type: 'op',
@@ -126,13 +180,25 @@ function layout(graph: JobGraphDetail): { nodes: Node[]; edges: Edge[] } {
   return { nodes, edges }
 }
 
-export function JobGraph({ graph, className }: { graph: JobGraphDetail; className?: string }) {
+export function JobGraph({
+  graph,
+  statsByNode,
+  ratesByNode,
+  onSelect,
+  className,
+}: {
+  graph: JobGraphDetail
+  statsByNode?: Record<string, OperatorRuntime>
+  ratesByNode?: Record<string, OpRate>
+  onSelect?: (nodeId: string) => void
+  className?: string
+}) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
   const rf = useRef<ReactFlowInstance<Node, Edge> | null>(null)
 
   // A structural signature: re-layout only when nodes/edges change, not on
-  // every poll. Placement/parallelism updates merge into existing positions.
+  // every poll. Placement / live-metric updates merge into existing positions.
   const topoKey = useMemo(
     () =>
       `${graph.topology_version}|${graph.nodes.map((n) => n.id).join(',')}|${graph.edges
@@ -148,23 +214,29 @@ export function JobGraph({ graph, className }: { graph: JobGraphDetail; classNam
     setEdges(laid.edges)
     const id = requestAnimationFrame(() => rf.current?.fitView({ padding: 0.15 }))
     return () => cancelAnimationFrame(id)
-    // graph is read but we deliberately re-run only on a topology change so a
-    // user's pan/zoom/drag survives the 8s placement polls.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topoKey])
 
-  // Placement/parallelism poll (same topology): merge node data in place so the
-  // TaskManager chips + ×N badge update live without moving or re-fitting.
+  // Placement + live-metric poll (same topology): merge node data in place so
+  // chips, the ×N badge, and TM chips update live without moving or re-fitting.
   useEffect(() => {
     const byId = new Map(graph.nodes.map((n) => [n.id, n]))
     setNodes((prev) =>
       prev.map((n) => {
         const fresh = byId.get(n.id)
-        return fresh ? { ...n, data: { node: fresh } satisfies OpData } : n
+        if (!fresh) return n
+        return {
+          ...n,
+          data: {
+            node: fresh,
+            stats: statsByNode?.[n.id],
+            rate: ratesByNode?.[n.id],
+          } satisfies OpData,
+        }
       }),
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graph])
+  }, [graph, statsByNode, ratesByNode])
 
   return (
     <div className={cn('h-[460px] w-full overflow-hidden rounded-lg border bg-background', className)}>
@@ -173,6 +245,7 @@ export function JobGraph({ graph, className }: { graph: JobGraphDetail; classNam
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodeClick={(_e, n) => onSelect?.(n.id)}
         onInit={(inst) => {
           rf.current = inst
           inst.fitView({ padding: 0.15 })

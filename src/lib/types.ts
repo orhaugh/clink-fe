@@ -99,6 +99,49 @@ export interface JobGraphDetail {
   edges: GraphEdge[]
 }
 
+// Per-operator runtime stats (GET /api/v1/jobs/:id/operators). Aggregated by
+// the JM across every TM hosting the job; the finest separable granularity is
+// per-TM (the host registry is shared across a TM's subtasks), so per_tm rows
+// accompany the node-level totals while subtasks[] carries the exact placement.
+export interface OperatorTmRow {
+  tm_id: string
+  records_in: number
+  records_out: number
+  input_depth: number
+  input_capacity: number
+}
+
+export interface OperatorRuntime {
+  node: string
+  op_id: string
+  uid: string
+  kind: 'source' | 'operator' | 'sink' | string
+  op_type: string
+  display_name: string
+  parallelism: number
+  keyed: boolean
+  metrics_available: boolean
+  stale: boolean
+  records_in: number
+  records_out: number
+  records_dropped: number
+  side_output: number
+  bytes_sent: number
+  bytes_received: number
+  input_depth: number
+  input_capacity: number
+  has_watermark: boolean
+  watermark_ms?: number
+  subtasks: GraphSubtaskPlacement[]
+  per_tm: OperatorTmRow[]
+}
+
+export interface JobOperators {
+  job_id: number
+  available: boolean
+  operators: OperatorRuntime[]
+}
+
 export interface TmSnapshot {
   tm_id: string
   data_host: string

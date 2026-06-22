@@ -1,7 +1,17 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, Ban, Camera, GitCommitHorizontal, Scaling } from 'lucide-react'
-import { useJob, useJobGraph, useCancelJob, useRescaleJob, useSavepointJob } from '@/hooks/useApi'
+import {
+  useJob,
+  useJobGraph,
+  useJobOperators,
+  useCancelJob,
+  useRescaleJob,
+  useSavepointJob,
+} from '@/hooks/useApi'
+import { OperatorDetail } from '@/components/OperatorDetail'
+import type { OperatorRuntime } from '@/lib/types'
+import type { OpRate } from '@/components/JobGraph'
 
 // Lazy so React Flow + dagre (their own chunk) only load when a job's graph is
 // actually viewed, not on every page.
@@ -249,6 +259,44 @@ function RescaleDialog({ job, disabled }: { job: JobDetailT; disabled: boolean }
 
 function GraphSection({ jobId }: { jobId: number }) {
   const graph = useJobGraph(jobId)
+  const ops = useJobOperators(jobId)
+  const [selected, setSelected] = useState<string | null>(null)
+
+  // Map node id -> live stats, and derive records/sec from the delta between
+  // successive (monotonic) counter samples. Counters never decrease, so a TM
+  // dropping out shows as a dip toward 0, never negative (clamped).
+  const statsByNode = useMemo(() => {
+    const m: Record<string, OperatorRuntime> = {}
+    for (const o of ops.data?.operators ?? []) m[o.node] = o
+    return m
+  }, [ops.data])
+
+  const prevRef = useRef<Map<string, { in: number; out: number; ts: number }>>(new Map())
+  const [rates, setRates] = useState<Record<string, OpRate>>({})
+  useEffect(() => {
+    if (!ops.data) return
+    const now = Date.now()
+    const next: Record<string, OpRate> = {}
+    const nextPrev = new Map<string, { in: number; out: number; ts: number }>()
+    for (const o of ops.data.operators) {
+      const p = prevRef.current.get(o.node)
+      if (p) {
+        const dt = (now - p.ts) / 1000
+        if (dt > 0) {
+          next[o.node] = {
+            in: Math.max(0, (o.records_in - p.in) / dt),
+            out: Math.max(0, (o.records_out - p.out) / dt),
+          }
+        }
+      }
+      nextPrev.set(o.node, { in: o.records_in, out: o.records_out, ts: now })
+    }
+    prevRef.current = nextPrev
+    setRates(next)
+  }, [ops.data])
+
+  const selectedOp = selected ? statsByNode[selected] ?? null : null
+
   return (
     <Card>
       <CardHeader>
@@ -267,8 +315,14 @@ function GraphSection({ jobId }: { jobId: number }) {
         ) : (
           <>
             <Suspense fallback={<LoadingState label="Loading graph" />}>
-              <JobGraph graph={graph.data} />
+              <JobGraph
+                graph={graph.data}
+                statsByNode={statsByNode}
+                ratesByNode={rates}
+                onSelect={setSelected}
+              />
             </Suspense>
+            <OperatorDetail op={selectedOp} onClose={() => setSelected(null)} />
             <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
               <Legend swatch="bg-info" label="source" />
               <Legend swatch="bg-ok" label="sink" />
@@ -276,7 +330,8 @@ function GraphSection({ jobId }: { jobId: number }) {
               <span className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 bg-muted-foreground" /> forward</span>
               <span className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 border-t border-dashed border-warn" /> rebalance</span>
               <span className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 bg-primary" /> hash-partitioned</span>
-              <span>×N = parallelism; chips = TaskManager placement</span>
+              <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-ok" /> backpressure (green/amber/red)</span>
+              <span>▸/s = records per second; click a node for detail</span>
             </div>
           </>
         )}

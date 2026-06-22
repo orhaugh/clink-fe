@@ -15,6 +15,7 @@ export const qk = {
   jobs: ['jobs'] as const,
   job: (id: number) => ['job', id] as const,
   jobGraph: (id: number) => ['jobGraph', id] as const,
+  jobOperators: (id: number) => ['jobOperators', id] as const,
   tms: ['tms'] as const,
   tm: (id: string) => ['tm', id] as const,
   tmSubtasks: (id: string) => ['tmSubtasks', id] as const,
@@ -47,6 +48,17 @@ export const useJobGraph = (id: number) =>
     queryFn: ({ signal }) => api.jobGraph(id, signal),
     // Topology is structural; poll slowly (placement can shift on rescale).
     refetchInterval: 8000,
+  })
+
+// Per-operator runtime stats: polled FAST and decoupled from the slow topology
+// poll, so the node overlays (records/sec, backpressure) feel live. Each poll
+// scrapes the TMs JM-side, so 2s is a reasonable floor.
+export const useJobOperators = (id: number, enabled = true) =>
+  useQuery({
+    queryKey: qk.jobOperators(id),
+    queryFn: ({ signal }) => api.jobOperators(id, signal),
+    refetchInterval: 2000,
+    enabled,
   })
 
 export const useTms = () =>
