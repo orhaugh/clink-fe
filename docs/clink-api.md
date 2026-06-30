@@ -113,6 +113,50 @@ volume. The console renders one disk card per volume.
 The console renders these as a System card row on the Metrics page (JM) and each
 TaskManager's metrics tab, plus a rolling CPU/memory session chart.
 
+## SQL workbench (when the JM is built with SQL linked)
+
+The SQL workbench page (`/sql`) authors and runs SQL server-side; the browser
+never parses SQL. Three endpoints back it (present only when `CLINK_LINKED_SQL`).
+
+```
+POST /api/v1/jobs/sql?mode=explain|compile|submit[&parallelism=N][&name=foo]
+```
+
+The request body is raw SQL text (one or more statements; `text/plain`, no JSON
+wrapper, so quoting is untouched). DDL (`CREATE TABLE`/`VIEW`, `ALTER`, `RENAME`,
+`DROP`) is applied to a JM-held session catalogue, visible to later statements
+and later requests. For each `INSERT` / `CREATE MATERIALIZED VIEW` (and an
+explicit `EXPLAIN`) the mode decides the action. Response (200):
+
+```jsonc
+{ "ok": true, "mode": "explain", "applied": 2,
+  "plans": [ { "kind": "insert", "explain": "Sink [..]\n  Project [..]\n    Scan [..]" } ] }
+// mode=compile -> "specs": [ { "name": "sql_job", "spec_json": "<JobGraphSpec JSON string>" } ]
+// mode=submit  -> "jobs":  [ { "name": "sql_job", "job_id": 7 } ]
+```
+
+A parse/bind/compile error returns 400 with `{ ok:false, error, position }`
+(`position` is the 1-based byte offset, 0 if unknown). `ANALYZE` is rejected over
+HTTP (it runs a local scan).
+
+```
+GET /api/v1/catalog      -> { tables: [ { name, kind, connector?, columns:[{name,type}], primary_key?:[] } ] }
+GET /api/v1/connectors   -> { connectors: [ { name, source, sink, category } ] }
+```
+
+`/api/v1/catalog` is the session catalogue (drives the workbench browser +
+autocomplete); `/api/v1/connectors` is the `WITH (connector='...')` vocabulary
+(category + best-effort source/sink flags; a connector only works at submit if
+its impl is linked). The catalogue is in-memory unless the JM is started with
+`--sql-catalog-dir <dir>`.
+
+## Metrics dashboards
+
+The Metrics dashboards page (`/dashboards`) groups the JM `/metrics` Prometheus
+feed into per-domain panels (checkpoints, state & disaggregation, connectors,
+SQL pipeline, resilience, cluster orchestration, process/system). The raw
+searchable explorer stays at `/metrics`.
+
 ## Remaining notes
 
 - **Metrics are Prometheus text**, not JSON, and point-in-time (no server-side
