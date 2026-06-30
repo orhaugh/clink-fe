@@ -11,6 +11,9 @@ import { JobDetail } from '@/pages/JobDetail'
 import { SubmitJob } from '@/pages/SubmitJob'
 import { Logs } from '@/pages/Logs'
 import { Metrics } from '@/pages/Metrics'
+import { MetricsDashboards } from '@/pages/MetricsDashboards'
+import { SqlWorkbench } from '@/pages/SqlWorkbench'
+import { Connectors } from '@/pages/Connectors'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,8 +37,11 @@ export function App() {
               <Route path="/task-managers/:id" element={<TaskManagerDetail />} />
               <Route path="/jobs" element={<Jobs />} />
               <Route path="/jobs/:id" element={<JobDetail />} />
+              <Route path="/sql" element={<SqlWorkbench />} />
+              <Route path="/connectors" element={<Connectors />} />
               <Route path="/submit" element={<SubmitJob />} />
               <Route path="/logs" element={<Logs />} />
+              <Route path="/dashboards" element={<MetricsDashboards />} />
               <Route path="/metrics" element={<Metrics />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

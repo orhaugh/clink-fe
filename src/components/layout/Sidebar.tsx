@@ -1,14 +1,28 @@
 import { NavLink } from 'react-router-dom'
-import { Activity, FileBarChart, LayoutDashboard, ScrollText, Server, UploadCloud, Workflow } from 'lucide-react'
+import {
+  Activity,
+  FileBarChart,
+  Gauge,
+  LayoutDashboard,
+  Plug,
+  ScrollText,
+  Server,
+  Terminal,
+  UploadCloud,
+  Workflow,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const nav = [
   { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
-  { to: '/task-managers', label: 'TaskManagers', icon: Server, end: false },
   { to: '/jobs', label: 'Jobs', icon: Workflow, end: false },
+  { to: '/sql', label: 'SQL workbench', icon: Terminal, end: false },
+  { to: '/task-managers', label: 'TaskManagers', icon: Server, end: false },
+  { to: '/connectors', label: 'Connectors', icon: Plug, end: false },
   { to: '/submit', label: 'Submit job', icon: UploadCloud, end: false },
+  { to: '/dashboards', label: 'Metrics', icon: Gauge, end: false },
+  { to: '/metrics', label: 'Metrics (raw)', icon: FileBarChart, end: false },
   { to: '/logs', label: 'Logs', icon: ScrollText, end: false },
-  { to: '/metrics', label: 'Metrics', icon: FileBarChart, end: false },
 ]
 
 export function Sidebar() {
