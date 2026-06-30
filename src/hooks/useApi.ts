@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, type LogQuery } from '@/lib/api'
+import type { SqlMode } from '@/lib/types'
 
 // Poll cadences tuned for an ops console: cluster topology a few seconds,
 // detail views a touch faster, metrics a little slower. SSE events also
@@ -25,6 +26,8 @@ export const qk = {
   logs: (q: LogQuery) => ['logs', q] as const,
   logComponents: ['logComponents'] as const,
   metrics: ['metrics'] as const,
+  catalog: ['catalog'] as const,
+  connectors: ['connectors'] as const,
 }
 
 export const useHealth = () =>
@@ -144,5 +147,48 @@ export function useSubmitSpec() {
   return useMutation({
     mutationFn: ({ spec, name }: { spec: string; name?: string }) => api.submitSpec(spec, name),
     onSuccess: () => void qc.invalidateQueries({ queryKey: qk.jobs }),
+  })
+}
+
+// --- SQL workbench ---
+
+export const useCatalog = (refetchInterval: number | false = 5000) =>
+  useQuery({
+    queryKey: qk.catalog,
+    queryFn: ({ signal }) => api.catalog(signal),
+    refetchInterval,
+  })
+
+export const useConnectors = () =>
+  useQuery({
+    queryKey: qk.connectors,
+    queryFn: ({ signal }) => api.connectors(signal),
+    staleTime: 5 * 60 * 1000, // the build's connector set does not change at runtime
+  })
+
+// runSql is a mutation (it has side effects: DDL mutates the session catalog,
+// submit creates jobs). On success we refresh the catalog (DDL may have changed
+// it) and, for submit, the jobs list.
+export function useRunSql() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      sql,
+      mode,
+      parallelism,
+      name,
+    }: {
+      sql: string
+      mode: SqlMode
+      parallelism?: number
+      name?: string
+    }) => api.runSql(sql, mode, { parallelism, name }),
+    onSuccess: (res, { mode }) => {
+      void qc.invalidateQueries({ queryKey: qk.catalog })
+      if (mode === 'submit' && res.ok) {
+        void qc.invalidateQueries({ queryKey: qk.jobs })
+        void qc.invalidateQueries({ queryKey: qk.cluster })
+      }
+    },
   })
 }

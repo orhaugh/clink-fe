@@ -5,6 +5,7 @@
 
 import type {
   CancelAck,
+  CatalogTable,
   ClusterSnapshot,
   Health,
   JmConfig,
@@ -15,6 +16,9 @@ import type {
   LogRecord,
   RescaleAck,
   SavepointAck,
+  SqlConnector,
+  SqlMode,
+  SqlResult,
   SubmitAck,
   SubtaskRecord,
   TmConfig,
@@ -132,6 +136,41 @@ export const api = {
   logComponents: (s?: AbortSignal) =>
     getJson<{ components: string[] }>('/api/v1/logs/components', s).then((r) => r.components),
   metrics: (s?: AbortSignal) => getText('/metrics', s),
+
+  // --- SQL workbench ---
+  // The session catalog (tables/views registered via /api/v1/jobs/sql DDL).
+  catalog: (s?: AbortSignal) =>
+    getJson<{ tables: CatalogTable[] }>('/api/v1/catalog', s).then((r) => r.tables),
+  // The WITH(connector='...') vocabulary this build understands.
+  connectors: (s?: AbortSignal) =>
+    getJson<{ connectors: SqlConnector[] }>('/api/v1/connectors', s).then((r) => r.connectors),
+  // Compile / explain / submit raw SQL. The body is plain SQL text; options ride
+  // the query string. A 400 (parse/bind/compile error) is NOT thrown - the
+  // parsed {ok:false,error,position} body is returned so the editor can show it.
+  runSql: async (
+    sql: string,
+    mode: SqlMode,
+    opts: { parallelism?: number; name?: string } = {},
+  ): Promise<SqlResult> => {
+    const p = new URLSearchParams({ mode })
+    if (opts.parallelism != null) p.set('parallelism', String(opts.parallelism))
+    if (opts.name) p.set('name', opts.name)
+    let res: Response
+    try {
+      res = await fetch(`/api/v1/jobs/sql?${p.toString()}`, {
+        method: 'POST',
+        headers: { 'content-type': 'text/plain' },
+        body: sql,
+      })
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : 'network error' }
+    }
+    try {
+      return (await res.json()) as SqlResult
+    } catch {
+      return { ok: false, error: `${res.status} ${res.statusText}` }
+    }
+  },
 }
 
 export const EVENTS_PATH = '/api/v1/events'

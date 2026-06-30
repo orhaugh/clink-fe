@@ -221,6 +221,64 @@ export interface ClinkEvent {
 }
 
 // Derived, presentation-only job state (the API does not expose a single
+// --- SQL workbench (GET /api/v1/catalog, /api/v1/connectors,
+//     POST /api/v1/jobs/sql) -------------------------------------------------
+
+export interface CatalogColumn {
+  name: string
+  type: string // arrow type, e.g. "int64", "string"
+}
+
+export type CatalogKind = 'table' | 'view' | 'materialized_view' | 'lookup'
+
+export interface CatalogTable {
+  name: string
+  kind: CatalogKind | string
+  connector?: string
+  columns: CatalogColumn[]
+  primary_key?: string[]
+}
+
+export type ConnectorCategory = 'messaging' | 'storage' | 'database' | 'observability' | 'testing'
+
+export interface SqlConnector {
+  name: string
+  source: boolean
+  sink: boolean
+  category: ConnectorCategory | string
+}
+
+export type SqlMode = 'explain' | 'compile' | 'submit'
+
+export interface SqlPlanEntry {
+  kind: string // "insert" | "select" | "materialized_view"
+  explain: string
+}
+
+export interface SqlSpecEntry {
+  name: string
+  spec_json: string
+}
+
+export interface SqlJobEntry {
+  name: string
+  job_id: number
+}
+
+// Response of POST /api/v1/jobs/sql. On success `ok` is true and exactly one of
+// plans/specs/jobs is populated per the mode; on a parse/bind/compile error
+// `ok` is false with a message and 1-based byte `position` (0 if unknown).
+export interface SqlResult {
+  ok: boolean
+  mode?: SqlMode
+  applied?: number // DDL statements applied to the session catalog
+  plans?: SqlPlanEntry[]
+  specs?: SqlSpecEntry[]
+  jobs?: SqlJobEntry[]
+  error?: string
+  position?: number
+}
+
 // status enum; we infer it from the summary flags + error count).
 export type JobState = 'running' | 'completed' | 'cancelled' | 'failed'
 
