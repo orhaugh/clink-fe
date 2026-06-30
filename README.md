@@ -75,12 +75,64 @@ Paste these into the **SQL workbench** (`/sql`). Notes:
   to Compile or Submit.
 - DDL accumulates in the JobManager's **session catalogue**, so run the setup
   once; the queries then resolve against it. The setup uses `IF NOT EXISTS`, so
-  it is safe to re-run. **Submit** additionally needs the connector endpoints to
-  be reachable (a live Kafka here); Explain and Compile do not.
+  it is safe to re-run.
+- To **Submit** a job that needs no external setup, use the synthetic `nexmark`
+  source in the first group below. The Kafka examples after it need a reachable
+  broker to Submit (Explain and Compile work without one).
 - Windowed aggregation needs an `event_time_column` on the source. Window sizes
   take an `INTERVAL` (or a plain millisecond integer, e.g. `TUMBLE(datetime, 10000)`).
 - The full connector vocabulary is on the **Connectors** page; swap `connector`,
   `brokers`, `topic`, `path`, etc. for your environment.
+
+### Runs with no external connector (synthetic data)
+
+The built-in `nexmark` source generates a synthetic event stream - no Kafka, no
+files. `events_num` bounds it (the job then completes), `tps` sets the
+event-time spacing, and `nexmark_type` picks the shape (`bid`, `auction`,
+`person`). Paired with the `blackhole` sink (which discards output) this runs
+end to end with zero external setup - press **Submit** and watch it on the Jobs
+page.
+
+Bounded windowed count (completes):
+
+```sql
+CREATE TABLE IF NOT EXISTS synth_bids (
+  auction BIGINT, bidder BIGINT, price BIGINT, channel VARCHAR, url VARCHAR, datetime BIGINT
+) WITH (connector='nexmark', format='json', nexmark_type='bid',
+        event_time_column='datetime', watermark_lag_ms='1000',
+        events_num='50000', tps='10000');
+
+CREATE TABLE IF NOT EXISTS sink_counts (bidder BIGINT, bid_count BIGINT)
+  WITH (connector='blackhole');
+
+INSERT INTO sink_counts
+SELECT bidder, COUNT(*) AS bid_count
+FROM synth_bids
+GROUP BY TUMBLE(datetime, INTERVAL '5' SECOND), bidder;
+```
+
+Stateless passthrough + filter (also completes):
+
+```sql
+CREATE TABLE IF NOT EXISTS sink_bids (bidder BIGINT, price BIGINT)
+  WITH (connector='blackhole');
+
+INSERT INTO sink_bids SELECT bidder, price FROM synth_bids WHERE price > 500;
+```
+
+> The demo `docker compose` stack auto-submits an unbounded stream that competes
+> for the containers' CPU. Cancel that job on the **Jobs** page first, or your
+> synthetic job may run very slowly (or appear to stall) while it is starved of
+> CPU. Set `events_num='0'` for an unbounded stream; to inspect output instead
+> of discarding it, swap `blackhole` for `connector='file'` / `'parquet'` with a
+> `path=` inside the TaskManager container.
+
+### Realistic examples (Kafka - Submit needs a reachable broker)
+
+These mirror the in-repo nexmark queries. **Explain** and **Compile** work
+without a broker; **Submit** needs one reachable from the TaskManagers - use the
+compose service name (e.g. `kafka:9092`), not `localhost`, from inside a
+container.
 
 ### 1. Setup - define the source tables (run once)
 
