@@ -1,0 +1,74 @@
+# CI for clink-fe (the operations console).
+#
+# A pure Node/TypeScript app, so the pipeline is fast and fully blocking:
+# typecheck, lint, the vitest suite with coverage (the logic core is
+# hard-gated by per-file thresholds in vitest.config.ts), and a production
+# build. Runs on a Node LTS matrix so a version-specific break surfaces here.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref so pushes don't queue up.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: typecheck · lint · test · build (node ${{ matrix.node }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install (locked)
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test + coverage
+        run: npm run coverage
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            echo "### clink-fe coverage (node ${{ matrix.node }})" >> "$GITHUB_STEP_SUMMARY"
+            node -e '
+              const c = require("./coverage/coverage-summary.json").total;
+              const row = (k) => `| ${k} | ${c[k].pct}% |`;
+              console.log("| metric | % |\n| --- | --- |");
+              ["statements","branches","functions","lines"].forEach(k => console.log(row(k)));
+            ' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload coverage (node 22 only)
+        if: ${{ always() && matrix.node == 22 }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage
+          if-no-files-found: ignore

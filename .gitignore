@@ -10,3 +10,6 @@ dist-ssr
 
 # IDEs
 .idea/
+
+# test coverage output
+coverage
