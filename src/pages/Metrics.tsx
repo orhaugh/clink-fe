@@ -63,7 +63,7 @@ export function Metrics() {
     <div className="space-y-6">
       <PageHeader
         title="Metrics"
-        description="Live JobManager metrics, parsed from the Prometheus exposition. Per-TaskManager metrics live on each TM's detail page."
+        description="Live Coordinator metrics, parsed from the Prometheus exposition. Per-Worker metrics live on each worker's detail page."
       />
 
       {hasSeries && history.length > 1 && (

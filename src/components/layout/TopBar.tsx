@@ -33,7 +33,7 @@ export function TopBar() {
         <div className="flex items-center gap-2 text-sm">
           <Server className="h-4 w-4 text-muted-foreground" />
           <span className="font-medium">
-            {c ? `${c.advertise_host}:${c.control_port}` : 'JobManager'}
+            {c ? `${c.advertise_host}:${c.control_port}` : 'Coordinator'}
           </span>
         </div>
         {health.data && (
@@ -54,7 +54,7 @@ export function TopBar() {
         <ConnDot
           ok={!health.isError && !!health.data?.ok}
           pulse
-          label={health.isError ? 'JM unreachable' : 'JM healthy'}
+          label={health.isError ? 'coordinator unreachable' : 'coordinator healthy'}
         />
         <span className="inline-flex items-center gap-1.5">
           <Radio className={cn('h-3.5 w-3.5', state === 'open' ? 'text-ok' : 'text-muted-foreground')} />

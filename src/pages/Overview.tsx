@@ -7,7 +7,7 @@ import { StatCard } from '@/components/StatCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ErrorState, LoadingState, EmptyState } from '@/components/States'
-import { JobStateBadge, TmStateBadge } from '@/components/StatusBadge'
+import { JobStateBadge, WorkerStateBadge } from '@/components/StatusBadge'
 import { deriveJobState } from '@/lib/types'
 import { fmtRelative, pct } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -21,8 +21,8 @@ export function Overview() {
   if (cluster.isLoading || !cluster.data) return <LoadingState />
 
   const c = cluster.data
-  const liveTms = c.task_managers.filter((t) => !t.lost).length
-  const lostTms = c.task_managers.length - liveTms
+  const liveTms = c.workers.filter((t) => !t.lost).length
+  const lostTms = c.workers.length - liveTms
   const recentJobs = (jobs.data ?? []).slice().sort((a, b) => b.id - a.id).slice(0, 6)
 
   return (
@@ -38,7 +38,7 @@ export function Overview() {
           tone={c.total_slot_capacity > 0 && c.slots_in_use >= c.total_slot_capacity ? 'warn' : 'default'}
         />
         <StatCard
-          label="TaskManagers"
+          label="Workers"
           value={liveTms}
           sub={lostTms > 0 ? `${lostTms} lost` : 'all live'}
           icon={Server}
@@ -51,30 +51,30 @@ export function Overview() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader className="flex-row items-center justify-between">
-            <CardTitle>TaskManager fleet</CardTitle>
-            <Link to="/task-managers" className="text-xs text-primary hover:underline">
+            <CardTitle>Worker fleet</CardTitle>
+            <Link to="/workers" className="text-xs text-primary hover:underline">
               View all
             </Link>
           </CardHeader>
           <CardContent className="px-0">
-            {c.task_managers.length === 0 ? (
-              <EmptyState label="No TaskManagers registered" hint="Start a TM pointing at this JobManager." />
+            {c.workers.length === 0 ? (
+              <EmptyState label="No Workers registered" hint="Start a worker pointing at this Coordinator." />
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>TaskManager</TableHead>
+                    <TableHead>Worker</TableHead>
                     <TableHead>Host</TableHead>
                     <TableHead>Slots</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {c.task_managers.map((t) => (
-                    <TableRow key={t.tm_id}>
+                  {c.workers.map((t) => (
+                    <TableRow key={t.worker_id}>
                       <TableCell>
-                        <Link to={`/task-managers/${t.tm_id}`} className="font-mono text-primary hover:underline">
-                          {t.tm_id}
+                        <Link to={`/workers/${t.worker_id}`} className="font-mono text-primary hover:underline">
+                          {t.worker_id}
                         </Link>
                       </TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">{t.data_host}</TableCell>
@@ -82,7 +82,7 @@ export function Overview() {
                         {t.slots_in_use}/{t.slot_capacity}
                       </TableCell>
                       <TableCell>
-                        <TmStateBadge lost={t.lost} />
+                        <WorkerStateBadge lost={t.lost} />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -102,7 +102,7 @@ export function Overview() {
           </CardHeader>
           <CardContent className="px-0">
             {events.length === 0 ? (
-              <EmptyState label="No events yet" hint="TM registrations, job submissions and completions stream here." />
+              <EmptyState label="No events yet" hint="worker registrations, job submissions and completions stream here." />
             ) : (
               <ul className="max-h-80 divide-y divide-border overflow-auto">
                 {events.map((e) => (

@@ -96,7 +96,7 @@ export function JobDetail() {
                 <TableRow>
                   <TableHead>Role</TableHead>
                   <TableHead>Subtask</TableHead>
-                  <TableHead>TaskManager</TableHead>
+                  <TableHead>Worker</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -105,9 +105,9 @@ export function JobDetail() {
                     <TableCell className="font-mono text-xs">{t.role}</TableCell>
                     <TableCell className="tabular-nums">{t.subtask_idx}</TableCell>
                     <TableCell>
-                      {t.tm_id ? (
-                        <Link to={`/task-managers/${t.tm_id}`} className="font-mono text-primary hover:underline">
-                          {t.tm_id}
+                      {t.worker_id ? (
+                        <Link to={`/workers/${t.worker_id}`} className="font-mono text-primary hover:underline">
+                          {t.worker_id}
                         </Link>
                       ) : (
                         <Badge variant="muted">unassigned</Badge>
@@ -263,7 +263,7 @@ function GraphSection({ jobId }: { jobId: number }) {
   const [selected, setSelected] = useState<string | null>(null)
 
   // Map node id -> live stats, and derive records/sec from the delta between
-  // successive (monotonic) counter samples. Counters never decrease, so a TM
+  // successive (monotonic) counter samples. Counters never decrease, so a worker
   // dropping out shows as a dip toward 0, never negative (clamped).
   const statsByNode = useMemo(() => {
     const m: Record<string, OperatorRuntime> = {}
@@ -368,9 +368,9 @@ function FailuresPanel({ job }: { job: JobDetailT }) {
                   <span className="font-mono font-medium text-danger">
                     {se.role}[{se.subtask_idx}]
                   </span>
-                  {se.tm_id && (
-                    <Link to={`/task-managers/${se.tm_id}`} className="font-mono text-primary hover:underline">
-                      {se.tm_id}
+                  {se.worker_id && (
+                    <Link to={`/workers/${se.worker_id}`} className="font-mono text-primary hover:underline">
+                      {se.worker_id}
                     </Link>
                   )}
                   <Badge variant="muted">attempt {se.attempt}</Badge>

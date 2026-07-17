@@ -1,14 +1,14 @@
 // Typed client for the clink HTTP API. All paths are relative so the Vite dev
-// proxy (and a same-origin production deployment served by the JM) route them
-// to the JobManager. The JM proxies per-TaskManager routes under
-// /api/v1/tms/:id/*, so the console only ever talks to one origin.
+// proxy (and a same-origin production deployment served by the coordinator) route them
+// to the Coordinator. The coordinator proxies per-Worker routes under
+// /api/v1/workers/:id/*, so the console only ever talks to one origin.
 
 import type {
   CancelAck,
   CatalogTable,
   ClusterSnapshot,
   Health,
-  JmConfig,
+  CoordinatorConfig,
   JobDetail,
   JobGraphDetail,
   JobOperators,
@@ -21,9 +21,9 @@ import type {
   SqlResult,
   SubmitAck,
   SubtaskRecord,
-  TmConfig,
-  TmSnapshot,
-  TmSummary,
+  WorkerConfig,
+  WorkerSnapshot,
+  WorkerSummary,
 } from './types'
 
 export class ApiError extends Error {
@@ -75,10 +75,10 @@ function logPath(base: string, q: LogQuery = {}): string {
 }
 
 export const api = {
-  // --- JobManager (cluster) ---
+  // --- Coordinator (cluster) ---
   health: (s?: AbortSignal) => getJson<Health>('/api/v1/health', s),
   cluster: (s?: AbortSignal) => getJson<ClusterSnapshot>('/api/v1/cluster', s),
-  jmConfig: (s?: AbortSignal) => getJson<JmConfig>('/api/v1/config', s),
+  coordinatorConfig: (s?: AbortSignal) => getJson<CoordinatorConfig>('/api/v1/config', s),
 
   jobs: (s?: AbortSignal) => getJson<{ jobs: JobSummary[] }>('/api/v1/jobs', s).then((r) => r.jobs),
   job: (id: number, s?: AbortSignal) => getJson<JobDetail>(`/api/v1/jobs/${id}`, s),
@@ -118,19 +118,19 @@ export const api = {
     return (await res.json()) as SubmitAck
   },
 
-  tms: (s?: AbortSignal) =>
-    getJson<{ task_managers: TmSummary[] }>('/api/v1/tms', s).then((r) => r.task_managers),
+  workers: (s?: AbortSignal) =>
+    getJson<{ workers: WorkerSummary[] }>('/api/v1/workers', s).then((r) => r.workers),
 
-  // --- TaskManager detail (proxied through the JM by tm_id) ---
-  tm: (id: string, s?: AbortSignal) => getJson<TmSnapshot>(`/api/v1/tms/${id}/tm`, s),
-  tmSubtasks: (id: string, s?: AbortSignal) =>
-    getJson<{ subtasks: SubtaskRecord[] }>(`/api/v1/tms/${id}/subtasks`, s).then((r) => r.subtasks),
-  tmConfig: (id: string, s?: AbortSignal) => getJson<TmConfig>(`/api/v1/tms/${id}/config`, s),
-  tmMetrics: (id: string, s?: AbortSignal) => getText(`/api/v1/tms/${id}/metrics`, s),
-  tmLogs: (id: string, q?: LogQuery, s?: AbortSignal) =>
-    getJson<{ logs: LogRecord[] }>(logPath(`/api/v1/tms/${id}/logs`, q), s).then((r) => r.logs),
+  // --- Worker detail (proxied through the coordinator by worker_id) ---
+  worker: (id: string, s?: AbortSignal) => getJson<WorkerSnapshot>(`/api/v1/workers/${id}/worker`, s),
+  workerSubtasks: (id: string, s?: AbortSignal) =>
+    getJson<{ subtasks: SubtaskRecord[] }>(`/api/v1/workers/${id}/subtasks`, s).then((r) => r.subtasks),
+  workerConfig: (id: string, s?: AbortSignal) => getJson<WorkerConfig>(`/api/v1/workers/${id}/config`, s),
+  workerMetrics: (id: string, s?: AbortSignal) => getText(`/api/v1/workers/${id}/metrics`, s),
+  workerLogs: (id: string, q?: LogQuery, s?: AbortSignal) =>
+    getJson<{ logs: LogRecord[] }>(logPath(`/api/v1/workers/${id}/logs`, q), s).then((r) => r.logs),
 
-  // --- Logs + metrics (JM-local; the TM variants are proxied above) ---
+  // --- Logs + metrics (coordinator-local; the worker variants are proxied above) ---
   logs: (q?: LogQuery, s?: AbortSignal) =>
     getJson<{ logs: LogRecord[] }>(logPath('/api/v1/logs', q), s).then((r) => r.logs),
   logComponents: (s?: AbortSignal) =>

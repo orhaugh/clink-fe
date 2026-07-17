@@ -70,7 +70,7 @@ export function SubmitJob() {
             <CardHeader>
               <CardTitle>Upload a compiled job</CardTitle>
               <CardDescription>
-                A clink job compiled to a shared object (built with CLINK_REGISTER_JOB). The JobManager loads it, runs
+                A clink job compiled to a shared object (built with CLINK_REGISTER_JOB). The Coordinator loads it, runs
                 its registration, builds the graph and schedules it. Equivalent to clink_submit_job.
               </CardDescription>
             </CardHeader>

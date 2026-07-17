@@ -1,36 +1,36 @@
 import { Link } from 'react-router-dom'
 import { ExternalLink } from 'lucide-react'
-import { useTms } from '@/hooks/useApi'
+import { useWorkers } from '@/hooks/useApi'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { ErrorState, LoadingState, EmptyState } from '@/components/States'
-import { TmStateBadge } from '@/components/StatusBadge'
+import { WorkerStateBadge } from '@/components/StatusBadge'
 import { pct } from '@/lib/format'
 
-export function TaskManagers() {
-  const tms = useTms()
+export function Workers() {
+  const workers = useWorkers()
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="TaskManagers"
-        description="The worker fleet registered with this JobManager. Detail, logs and metrics are proxied per TM."
+        title="Workers"
+        description="The worker fleet registered with this Coordinator. Detail, logs and metrics are proxied per worker."
       />
       <Card>
         <CardContent className="px-0 py-0">
-          {tms.isError ? (
-            <ErrorState error={tms.error} />
-          ) : tms.isLoading || !tms.data ? (
+          {workers.isError ? (
+            <ErrorState error={workers.error} />
+          ) : workers.isLoading || !workers.data ? (
             <LoadingState />
-          ) : tms.data.length === 0 ? (
-            <EmptyState label="No TaskManagers registered" hint="Start a TM with --jm-host/--jm-port pointing here." />
+          ) : workers.data.length === 0 ? (
+            <EmptyState label="No Workers registered" hint="Start a worker with --coordinator-host/--coordinator-port pointing here." />
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>TaskManager</TableHead>
+                  <TableHead>Worker</TableHead>
                   <TableHead>Data host</TableHead>
                   <TableHead>Slots</TableHead>
                   <TableHead>Utilisation</TableHead>
@@ -40,11 +40,11 @@ export function TaskManagers() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tms.data.map((t) => (
-                  <TableRow key={t.tm_id}>
+                {workers.data.map((t) => (
+                  <TableRow key={t.worker_id}>
                     <TableCell>
-                      <Link to={`/task-managers/${t.tm_id}`} className="font-mono text-primary hover:underline">
-                        {t.tm_id}
+                      <Link to={`/workers/${t.worker_id}`} className="font-mono text-primary hover:underline">
+                        {t.worker_id}
                       </Link>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">{t.data_host}</TableCell>
@@ -60,10 +60,10 @@ export function TaskManagers() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <TmStateBadge lost={t.lost} />
+                      <WorkerStateBadge lost={t.lost} />
                     </TableCell>
                     <TableCell>
-                      <Link to={`/task-managers/${t.tm_id}`} className="text-muted-foreground hover:text-primary">
+                      <Link to={`/workers/${t.worker_id}`} className="text-muted-foreground hover:text-primary">
                         <ExternalLink className="h-4 w-4" />
                       </Link>
                     </TableCell>

@@ -18,7 +18,7 @@ export function Jobs() {
     <div className="space-y-6">
       <PageHeader
         title="Jobs"
-        description="Jobs submitted to this JobManager."
+        description="Jobs submitted to this Coordinator."
         actions={
           <Button asChild size="sm">
             <Link to="/submit">

@@ -16,7 +16,7 @@ import type { LogRecord } from '@/lib/types'
 const LEVELS = ['debug', 'info', 'warn', 'error'] as const
 const LIMIT = 500
 
-type NodeId = string // 'jm' | 'all' | tm_id
+type NodeId = string // 'coordinator' | 'all' | worker_id
 
 export function Logs() {
   const cluster = useCluster()
@@ -27,12 +27,12 @@ export function Logs() {
   const [source, setSource] = useState<string>('')
   const [follow, setFollow] = useState(true)
 
-  const httpTms = (cluster.data?.task_managers ?? []).filter((t) => t.http_port > 0 && !t.lost)
+  const httpTms = (cluster.data?.workers ?? []).filter((t) => t.http_port > 0 && !t.lost)
 
   // Which nodes to fetch from for the current selection.
   const targets = useMemo<NodeId[]>(() => {
-    if (node === 'jm') return ['jm']
-    if (node === 'all') return ['jm', ...httpTms.map((t) => t.tm_id)]
+    if (node === 'coordinator') return ['coordinator']
+    if (node === 'all') return ['coordinator', ...httpTms.map((t) => t.worker_id)]
     return [node]
   }, [node, httpTms])
 
@@ -41,9 +41,9 @@ export function Logs() {
 
   const results = useQueries({
     queries: targets.map((t) => ({
-      queryKey: t === 'jm' ? qk.logs(query) : qk.tmLogs(t, query),
+      queryKey: t === 'coordinator' ? qk.logs(query) : qk.workerLogs(t, query),
       queryFn: ({ signal }: { signal: AbortSignal }) =>
-        t === 'jm' ? api.logs(query, signal) : api.tmLogs(t, query, signal),
+        t === 'coordinator' ? api.logs(query, signal) : api.workerLogs(t, query, signal),
       refetchInterval,
     })),
   })
@@ -67,7 +67,7 @@ export function Logs() {
     <div className="space-y-6">
       <PageHeader
         title="Logs"
-        description="Cluster-wide log stream. The JobManager and every HTTP-enabled TaskManager are merged by timestamp."
+        description="Cluster-wide log stream. The Coordinator and every HTTP-enabled Worker are merged by timestamp."
         actions={
           <Button variant={follow ? 'default' : 'outline'} size="sm" onClick={() => setFollow((f) => !f)}>
             {follow ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
@@ -85,10 +85,10 @@ export function Logs() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All nodes</SelectItem>
-                <SelectItem value="jm">JobManager</SelectItem>
+                <SelectItem value="coordinator">Coordinator</SelectItem>
                 {httpTms.map((t) => (
-                  <SelectItem key={t.tm_id} value={t.tm_id}>
-                    {t.tm_id}
+                  <SelectItem key={t.worker_id} value={t.worker_id}>
+                    {t.worker_id}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -115,7 +115,7 @@ export function Logs() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 list="log-sources"
-                placeholder="e.g. jm. / tm. / autoscaler"
+                placeholder="e.g. coordinator. / worker. / autoscaler"
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
                 className="pl-8"

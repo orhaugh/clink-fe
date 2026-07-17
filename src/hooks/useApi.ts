@@ -12,17 +12,17 @@ const METRICS = 5000
 export const qk = {
   health: ['health'] as const,
   cluster: ['cluster'] as const,
-  jmConfig: ['jmConfig'] as const,
+  coordinatorConfig: ['coordinatorConfig'] as const,
   jobs: ['jobs'] as const,
   job: (id: number) => ['job', id] as const,
   jobGraph: (id: number) => ['jobGraph', id] as const,
   jobOperators: (id: number) => ['jobOperators', id] as const,
-  tms: ['tms'] as const,
-  tm: (id: string) => ['tm', id] as const,
-  tmSubtasks: (id: string) => ['tmSubtasks', id] as const,
-  tmConfig: (id: string) => ['tmConfig', id] as const,
-  tmMetrics: (id: string) => ['tmMetrics', id] as const,
-  tmLogs: (id: string, q: LogQuery) => ['tmLogs', id, q] as const,
+  workers: ['workers'] as const,
+  worker: (id: string) => ['worker', id] as const,
+  workerSubtasks: (id: string) => ['workerSubtasks', id] as const,
+  workerConfig: (id: string) => ['workerConfig', id] as const,
+  workerMetrics: (id: string) => ['workerMetrics', id] as const,
+  workerLogs: (id: string, q: LogQuery) => ['workerLogs', id, q] as const,
   logs: (q: LogQuery) => ['logs', q] as const,
   logComponents: ['logComponents'] as const,
   metrics: ['metrics'] as const,
@@ -36,8 +36,8 @@ export const useHealth = () =>
 export const useCluster = () =>
   useQuery({ queryKey: qk.cluster, queryFn: ({ signal }) => api.cluster(signal), refetchInterval: TOPOLOGY })
 
-export const useJmConfig = () =>
-  useQuery({ queryKey: qk.jmConfig, queryFn: ({ signal }) => api.jmConfig(signal) })
+export const useCoordinatorConfig = () =>
+  useQuery({ queryKey: qk.coordinatorConfig, queryFn: ({ signal }) => api.coordinatorConfig(signal) })
 
 export const useJobs = () =>
   useQuery({ queryKey: qk.jobs, queryFn: ({ signal }) => api.jobs(signal), refetchInterval: TOPOLOGY })
@@ -55,7 +55,7 @@ export const useJobGraph = (id: number) =>
 
 // Per-operator runtime stats: polled FAST and decoupled from the slow topology
 // poll, so the node overlays (records/sec, backpressure) feel live. Each poll
-// scrapes the TMs JM-side, so 2s is a reasonable floor.
+// scrapes the workers coordinator-side, so 2s is a reasonable floor.
 export const useJobOperators = (id: number, enabled = true) =>
   useQuery({
     queryKey: qk.jobOperators(id),
@@ -64,26 +64,26 @@ export const useJobOperators = (id: number, enabled = true) =>
     enabled,
   })
 
-export const useTms = () =>
-  useQuery({ queryKey: qk.tms, queryFn: ({ signal }) => api.tms(signal), refetchInterval: TOPOLOGY })
+export const useWorkers = () =>
+  useQuery({ queryKey: qk.workers, queryFn: ({ signal }) => api.workers(signal), refetchInterval: TOPOLOGY })
 
-export const useTm = (id: string) =>
-  useQuery({ queryKey: qk.tm(id), queryFn: ({ signal }) => api.tm(id, signal), refetchInterval: DETAIL })
+export const useWorker = (id: string) =>
+  useQuery({ queryKey: qk.worker(id), queryFn: ({ signal }) => api.worker(id, signal), refetchInterval: DETAIL })
 
-export const useTmSubtasks = (id: string) =>
+export const useWorkerSubtasks = (id: string) =>
   useQuery({
-    queryKey: qk.tmSubtasks(id),
-    queryFn: ({ signal }) => api.tmSubtasks(id, signal),
+    queryKey: qk.workerSubtasks(id),
+    queryFn: ({ signal }) => api.workerSubtasks(id, signal),
     refetchInterval: DETAIL,
   })
 
-export const useTmConfig = (id: string) =>
-  useQuery({ queryKey: qk.tmConfig(id), queryFn: ({ signal }) => api.tmConfig(id, signal) })
+export const useWorkerConfig = (id: string) =>
+  useQuery({ queryKey: qk.workerConfig(id), queryFn: ({ signal }) => api.workerConfig(id, signal) })
 
-export const useTmMetricsText = (id: string, enabled = true) =>
+export const useWorkerMetricsText = (id: string, enabled = true) =>
   useQuery({
-    queryKey: qk.tmMetrics(id),
-    queryFn: ({ signal }) => api.tmMetrics(id, signal),
+    queryKey: qk.workerMetrics(id),
+    queryFn: ({ signal }) => api.workerMetrics(id, signal),
     refetchInterval: METRICS,
     enabled,
   })
@@ -97,10 +97,10 @@ export const useLogComponents = () =>
 export const useLogs = (q: LogQuery, refetchInterval: number | false = 3000) =>
   useQuery({ queryKey: qk.logs(q), queryFn: ({ signal }) => api.logs(q, signal), refetchInterval })
 
-export const useTmLogs = (id: string, q: LogQuery, refetchInterval: number | false = 3000) =>
+export const useWorkerLogs = (id: string, q: LogQuery, refetchInterval: number | false = 3000) =>
   useQuery({
-    queryKey: qk.tmLogs(id, q),
-    queryFn: ({ signal }) => api.tmLogs(id, q, signal),
+    queryKey: qk.workerLogs(id, q),
+    queryFn: ({ signal }) => api.workerLogs(id, q, signal),
     refetchInterval,
   })
 

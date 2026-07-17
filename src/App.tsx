@@ -4,8 +4,8 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/sonner'
 import { AppShell } from '@/components/layout/AppShell'
 import { Overview } from '@/pages/Overview'
-import { TaskManagers } from '@/pages/TaskManagers'
-import { TaskManagerDetail } from '@/pages/TaskManagerDetail'
+import { Workers } from '@/pages/Workers'
+import { WorkerDetail } from '@/pages/WorkerDetail'
 import { Jobs } from '@/pages/Jobs'
 import { JobDetail } from '@/pages/JobDetail'
 import { SubmitJob } from '@/pages/SubmitJob'
@@ -33,8 +33,8 @@ export function App() {
           <Routes>
             <Route element={<AppShell />}>
               <Route path="/" element={<Overview />} />
-              <Route path="/task-managers" element={<TaskManagers />} />
-              <Route path="/task-managers/:id" element={<TaskManagerDetail />} />
+              <Route path="/workers" element={<Workers />} />
+              <Route path="/workers/:id" element={<WorkerDetail />} />
               <Route path="/jobs" element={<Jobs />} />
               <Route path="/jobs/:id" element={<JobDetail />} />
               <Route path="/sql" element={<SqlWorkbench />} />

@@ -7,3 +7,6 @@ dist-ssr
 .DS_Store
 .vite
 *.tsbuildinfo
+
+# IDEs
+.idea/

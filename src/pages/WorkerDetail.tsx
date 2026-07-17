@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { useTm, useTmConfig, useTmLogs, useTmMetricsText, useTmSubtasks } from '@/hooks/useApi'
+import { useWorker, useWorkerConfig, useWorkerLogs, useWorkerMetricsText, useWorkerSubtasks } from '@/hooks/useApi'
 import { PageHeader } from '@/components/PageHeader'
 import { StatCard } from '@/components/StatCard'
 import { Card, CardContent } from '@/components/ui/card'
@@ -12,41 +12,41 @@ import { LogViewer } from '@/components/LogViewer'
 import { MetricsPanel } from '@/components/MetricsPanel'
 import { fmtMs } from '@/lib/format'
 
-export function TaskManagerDetail() {
+export function WorkerDetail() {
   const { id = '' } = useParams()
-  const tm = useTm(id)
-  const subtasks = useTmSubtasks(id)
-  const config = useTmConfig(id)
-  const metrics = useTmMetricsText(id)
-  const logs = useTmLogs(id, { level: 'debug', limit: 400 })
+  const worker = useWorker(id)
+  const subtasks = useWorkerSubtasks(id)
+  const config = useWorkerConfig(id)
+  const metrics = useWorkerMetricsText(id)
+  const logs = useWorkerLogs(id, { level: 'debug', limit: 400 })
 
   return (
     <div className="space-y-6">
       <PageHeader
         title={
           <span className="flex items-center gap-3">
-            <Link to="/task-managers" className="text-muted-foreground hover:text-foreground">
+            <Link to="/workers" className="text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <span className="font-mono">{id}</span>
           </span>
         }
-        description="TaskManager detail, proxied from the JobManager."
+        description="Worker detail, proxied from the Coordinator."
       />
 
-      {tm.isError ? (
-        <ErrorState error={tm.error} />
-      ) : tm.isLoading || !tm.data ? (
+      {worker.isError ? (
+        <ErrorState error={worker.error} />
+      ) : worker.isLoading || !worker.data ? (
         <LoadingState />
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <StatCard label="Slots" value={`${tm.data.slots_in_use}/${tm.data.slot_capacity}`} />
-            <StatCard label="Active subtasks" value={tm.data.active_subtasks} tone="info" />
-            <StatCard label="Data host" value={<span className="font-mono text-base">{tm.data.data_host}</span>} />
+            <StatCard label="Slots" value={`${worker.data.slots_in_use}/${worker.data.slot_capacity}`} />
+            <StatCard label="Active subtasks" value={worker.data.active_subtasks} tone="info" />
+            <StatCard label="Data host" value={<span className="font-mono text-base">{worker.data.data_host}</span>} />
             <StatCard
-              label="JobManager"
-              value={<span className="font-mono text-base">{tm.data.jm_host}:{tm.data.jm_port}</span>}
+              label="Coordinator"
+              value={<span className="font-mono text-base">{worker.data.coordinator_host}:{worker.data.coordinator_port}</span>}
             />
           </div>
 
@@ -66,7 +66,7 @@ export function TaskManagerDetail() {
                   ) : subtasks.isLoading || !subtasks.data ? (
                     <LoadingState />
                   ) : subtasks.data.length === 0 ? (
-                    <EmptyState label="No subtasks running on this TaskManager" />
+                    <EmptyState label="No subtasks running on this Worker" />
                   ) : (
                     <Table>
                       <TableHeader>
@@ -124,7 +124,7 @@ export function TaskManagerDetail() {
               {logs.isError ? (
                 <ErrorState error={logs.error} />
               ) : (
-                <LogViewer records={logs.data ?? []} heightClass="h-[60vh]" emptyLabel="No logs from this TaskManager" />
+                <LogViewer records={logs.data ?? []} heightClass="h-[60vh]" emptyLabel="No logs from this Worker" />
               )}
             </TabsContent>
           </Tabs>

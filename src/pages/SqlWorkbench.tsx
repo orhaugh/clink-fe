@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils'
 import type { CatalogTable, SqlMode, SqlResult } from '@/lib/types'
 
 const STARTER = `-- Define a source + sink, then run a query.
--- DDL accumulates in the JobManager's session catalogue (see the panel on the left).
+-- DDL accumulates in the Coordinator's session catalogue (see the panel on the left).
 --
 -- CREATE TABLE clicks (user_id BIGINT, url TEXT)
 --   WITH (connector='kafka', topic='clicks', bootstrap='localhost:9092');
@@ -258,7 +258,7 @@ export function SqlWorkbench() {
     <div className="space-y-6">
       <PageHeader
         title="SQL workbench"
-        description="Author clink SQL, inspect the plan, and submit straight to the cluster. DDL registers in the JobManager's session catalogue."
+        description="Author clink SQL, inspect the plan, and submit straight to the cluster. DDL registers in the Coordinator's session catalogue."
       />
 
       <div className="grid gap-6 lg:grid-cols-[300px_1fr]">

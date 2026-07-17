@@ -68,7 +68,7 @@ export function OperatorDetail({ op, onClose }: { op: OperatorRuntime | null; on
                 </div>
               ) : (
                 <div className="rounded-md border border-dashed border-border px-3 py-4 text-center text-muted-foreground">
-                  {op.stale ? 'A hosting TaskManager was unreachable.' : 'No runtime metrics reported yet.'}
+                  {op.stale ? 'A hosting Worker was unreachable.' : 'No runtime metrics reported yet.'}
                 </div>
               )}
 
@@ -95,7 +95,7 @@ export function OperatorDetail({ op, onClose }: { op: OperatorRuntime | null; on
                       <thead className="sticky top-0 bg-muted text-muted-foreground">
                         <tr>
                           <th className="px-2 py-1 text-left">subtask</th>
-                          <th className="px-2 py-1 text-left">task manager</th>
+                          <th className="px-2 py-1 text-left">worker</th>
                           <th className="px-2 py-1 text-left">started</th>
                           <th className="px-2 py-1 text-right">duration</th>
                         </tr>
@@ -106,9 +106,9 @@ export function OperatorDetail({ op, onClose }: { op: OperatorRuntime | null; on
                           const finished = s.finished_at_unix_ms || 0
                           const dur = started ? (finished || Date.now()) - started : 0
                           return (
-                            <tr key={`${s.subtask_idx}-${s.tm_id}`} className="border-t border-border/60">
+                            <tr key={`${s.subtask_idx}-${s.worker_id}`} className="border-t border-border/60">
                               <td className="px-2 py-1">#{s.subtask_idx}</td>
-                              <td className="px-2 py-1">{s.tm_id}</td>
+                              <td className="px-2 py-1">{s.worker_id}</td>
                               <td className="px-2 py-1">{started ? fmtRelative(started) : '-'}</td>
                               <td className="px-2 py-1 text-right">
                                 {started ? `${finished ? '' : '~'}${fmtMs(dur)}` : '-'}
@@ -122,25 +122,25 @@ export function OperatorDetail({ op, onClose }: { op: OperatorRuntime | null; on
                 </div>
               )}
 
-              {op.per_tm.length > 0 && (
+              {op.per_worker.length > 0 && (
                 <div>
                   <div className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                    per task manager
+                    per worker
                   </div>
                   <div className="overflow-auto rounded-md border border-border">
                     <table className="w-full font-mono text-[11px]">
                       <thead className="bg-muted text-muted-foreground">
                         <tr>
-                          <th className="px-2 py-1 text-left">tm</th>
+                          <th className="px-2 py-1 text-left">worker</th>
                           <th className="px-2 py-1 text-right">in</th>
                           <th className="px-2 py-1 text-right">out</th>
                           <th className="px-2 py-1 text-right">queued</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {op.per_tm.map((t) => (
-                          <tr key={t.tm_id} className="border-t border-border/60">
-                            <td className="px-2 py-1">{t.tm_id}</td>
+                        {op.per_worker.map((t) => (
+                          <tr key={t.worker_id} className="border-t border-border/60">
+                            <td className="px-2 py-1">{t.worker_id}</td>
                             <td className="px-2 py-1 text-right">{fmtCount(t.records_in)}</td>
                             <td className="px-2 py-1 text-right">{fmtCount(t.records_out)}</td>
                             <td className="px-2 py-1 text-right">

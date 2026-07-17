@@ -1,6 +1,6 @@
 # clink console (clink-fe)
 
-A modern operations console for clink clusters: JobManager and TaskManager
+A modern operations console for clink clusters: Coordinator and Worker
 visibility, job submission, cluster-wide logs, live metrics, and job
 failure/error inspection.
 
@@ -12,14 +12,14 @@ backend.
 
 clink's HTTP server sends no CORS headers, so the browser cannot call it
 cross-origin. In dev the Vite server proxies `/api` and `/metrics` to a running
-JobManager.
+Coordinator.
 
-1. Start a JobManager with a fixed HTTP port:
+1. Start a Coordinator with a fixed HTTP port:
 
    ```bash
-   clink_node --role=jm --port=7070 --http-port=8081
-   # and one or more TaskManagers, each with their own HTTP port:
-   clink_node --role=tm --id=tm-1 --jm-host=127.0.0.1 --jm-port=7070 --http-port=8091
+   clink_node --role=coordinator --port=7070 --http-port=8081
+   # and one or more Workers, each with their own HTTP port:
+   clink_node --role=worker --id=worker-1 --coordinator-host=127.0.0.1 --coordinator-port=7070 --http-port=8091
    ```
 
 2. Point the console at it and run:
@@ -30,23 +30,23 @@ JobManager.
    npm run dev                 # http://localhost:5181
    ```
 
-The JobManager is the single entry point: it proxies per-TaskManager routes
-(`/api/v1/tms/:id/*`), so the console only needs the JM target. TaskManagers must
+The Coordinator is the single entry point: it proxies per-Worker routes
+(`/api/v1/workers/:id/*`), so the console only needs the coordinator target. Workers must
 be started with `--http-port` for their detail/logs/metrics to be reachable
-through the JM proxy.
+through the coordinator proxy.
 
-Alternatively, skip the dev proxy and point the console straight at the JM by
+Alternatively, skip the dev proxy and point the console straight at the coordinator by
 enabling CORS on the node:
 
 ```bash
-clink_node --role=jm --port=7070 --http-port=8081 --http-cors-origin='*'
+clink_node --role=coordinator --port=7070 --http-port=8081 --http-cors-origin='*'
 ```
 
 ## What it shows
 
-- **Overview** - cluster rollup (slots, jobs), TaskManager fleet, recent jobs,
+- **Overview** - cluster rollup (slots, jobs), Worker fleet, recent jobs,
   and a live event feed (SSE).
-- **TaskManagers** - the fleet, plus per-TM detail: running subtasks, config,
+- **Workers** - the fleet, plus per-worker detail: running subtasks, config,
   parsed metrics, and logs.
 - **Jobs** - submitted jobs, plus per-job detail: subtask placement, checkpoint
   progress, structured per-subtask failures with stack traces, and savepoint /
@@ -59,11 +59,11 @@ clink_node --role=jm --port=7070 --http-port=8081 --http-cors-origin='*'
   understands, grouped by category with source/sink capability.
 - **Submit** - upload a compiled job `.so` (multipart) or post a JSON job spec.
 - **Logs** - cluster-wide log explorer with level / source / since filters and
-  follow mode, aggregating the JM and every TaskManager.
-- **Metrics** - purpose-built dashboards over the JM Prometheus feed
+  follow mode, aggregating the coordinator and every Worker.
+- **Metrics** - purpose-built dashboards over the coordinator Prometheus feed
   (checkpoints, state & disaggregation, connectors, SQL pipeline, resilience,
   orchestration, process / system), plus a searchable raw metric-family
-  explorer. System cards also appear on each TaskManager's metrics tab.
+  explorer. System cards also appear on each Worker's metrics tab.
 
 ## Sample SQL for the workbench
 
@@ -73,7 +73,7 @@ Paste these into the **SQL workbench** (`/sql`). Notes:
   resources needed); **Compile** returns the `JobGraphSpec`; **Submit** runs it.
 - A bare `SELECT` works with **Explain** only - wrap it in `INSERT INTO <sink>`
   to Compile or Submit.
-- DDL accumulates in the JobManager's **session catalogue**, so run the setup
+- DDL accumulates in the Coordinator's **session catalogue**, so run the setup
   once; the queries then resolve against it. The setup uses `IF NOT EXISTS`, so
   it is safe to re-run.
 - To **Submit** a job that needs no external setup, use the synthetic `nexmark`
@@ -125,12 +125,12 @@ INSERT INTO sink_bids SELECT bidder, price FROM synth_bids WHERE price > 500;
 > synthetic job may run very slowly (or appear to stall) while it is starved of
 > CPU. Set `events_num='0'` for an unbounded stream; to inspect output instead
 > of discarding it, swap `blackhole` for `connector='file'` / `'parquet'` with a
-> `path=` inside the TaskManager container.
+> `path=` inside the Worker container.
 
 ### Realistic examples (Kafka - Submit needs a reachable broker)
 
 These mirror the in-repo nexmark queries. **Explain** and **Compile** work
-without a broker; **Submit** needs one reachable from the TaskManagers - use the
+without a broker; **Submit** needs one reachable from the Workers - use the
 compose service name (e.g. `kafka:9092`), not `localhost`, from inside a
 container.
 

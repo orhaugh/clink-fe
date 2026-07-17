@@ -4,14 +4,14 @@ import { EVENTS_PATH } from '@/lib/api'
 import { qk } from './useApi'
 import type { ClinkEvent } from '@/lib/types'
 
-// Named SSE events clink publishes from the JobManager EventBus. clink sets the
+// Named SSE events clink publishes from the Coordinator EventBus. clink sets the
 // SSE `event:` field to the type, so we attach a listener per type (EventSource
 // has no wildcard) plus the default `message` channel as a fallback.
 export const EVENT_TYPES = [
-  'jm.tm_registered',
-  'jm.tm_lost',
-  'jm.job_submitted',
-  'jm.job_completed',
+  'coordinator.worker_registered',
+  'coordinator.worker_lost',
+  'coordinator.job_submitted',
+  'coordinator.job_completed',
 ] as const
 
 export type ConnState = 'connecting' | 'open' | 'closed'
@@ -38,11 +38,11 @@ export function useEvents() {
       const ev: ClinkEvent = { id: `${Date.now()}-${eventSeq++}`, type, data, ts: Date.now() }
       setEvents((prev) => [ev, ...prev].slice(0, MAX_EVENTS))
       // Refresh the topology views the event affects.
-      if (type.startsWith('jm.tm')) {
-        void qc.invalidateQueries({ queryKey: qk.tms })
+      if (type.startsWith('coordinator.worker')) {
+        void qc.invalidateQueries({ queryKey: qk.workers })
         void qc.invalidateQueries({ queryKey: qk.cluster })
       }
-      if (type.startsWith('jm.job')) {
+      if (type.startsWith('coordinator.job')) {
         void qc.invalidateQueries({ queryKey: qk.jobs })
         void qc.invalidateQueries({ queryKey: qk.cluster })
       }

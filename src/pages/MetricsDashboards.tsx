@@ -260,11 +260,11 @@ function Orchestration({ v }: { v: MetricsView }) {
   return (
     <Section title="Cluster orchestration">
       <div className={grid}>
-        <Stat label="Jobs running" value={n(scalar(v, 'clink_jm_jobs_running'))} />
-        <Stat label="Jobs completed" value={n(familyTotal(v, 'clink_jm_jobs_completed_total'))} tone="text-ok" />
-        <Stat label="Jobs failed" value={n(familyTotal(v, 'clink_jm_jobs_failed_total'))} tone="text-danger" />
-        <Stat label="TMs registered" value={n(scalar(v, 'clink_jm_tms_registered'))} />
-        <Stat label="TMs lost" value={n(familyTotal(v, 'clink_jm_tms_lost_total'))} tone="text-warn" />
+        <Stat label="Jobs running" value={n(scalar(v, 'clink_coordinator_jobs_running'))} />
+        <Stat label="Jobs completed" value={n(familyTotal(v, 'clink_coordinator_jobs_completed_total'))} tone="text-ok" />
+        <Stat label="Jobs failed" value={n(familyTotal(v, 'clink_coordinator_jobs_failed_total'))} tone="text-danger" />
+        <Stat label="workers registered" value={n(scalar(v, 'clink_coordinator_workers_registered'))} />
+        <Stat label="workers lost" value={n(familyTotal(v, 'clink_coordinator_workers_lost_total'))} tone="text-warn" />
         <Stat label="Rescale cutovers" value={n(familyTotal(v, 'clink_rescale_cutover_deploys_total'))} />
         <Stat label="Rescale aborts" value={n(familyTotal(v, 'clink_rescale_aborts_total'))} tone="text-warn" />
         <Stat label="Autoscaler ticks" value={n(familyTotal(v, 'clink_autoscaler_ticks_total'))} />
@@ -343,7 +343,7 @@ export function MetricsDashboards() {
     <div className="space-y-6">
       <PageHeader
         title="Metrics dashboards"
-        description="Engine telemetry grouped by domain, from the JobManager's Prometheus feed."
+        description="Engine telemetry grouped by domain, from the Coordinator's Prometheus feed."
         actions={
           <Link to="/metrics" className="text-sm text-primary hover:underline">
             Raw explorer &rarr;
@@ -352,10 +352,10 @@ export function MetricsDashboards() {
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Jobs running" value={n(scalar(v, 'clink_jm_jobs_running'))} icon={Activity} tone="info" />
+        <StatCard label="Jobs running" value={n(scalar(v, 'clink_coordinator_jobs_running'))} icon={Activity} tone="info" />
         <StatCard
           label="Slots in use"
-          value={`${n(scalar(v, 'clink_jm_slots_in_use'))} / ${n(scalar(v, 'clink_jm_slots_capacity'))}`}
+          value={`${n(scalar(v, 'clink_coordinator_slots_in_use'))} / ${n(scalar(v, 'clink_coordinator_slots_capacity'))}`}
           icon={Activity}
         />
         <StatCard

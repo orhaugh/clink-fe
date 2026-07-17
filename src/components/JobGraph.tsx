@@ -49,7 +49,7 @@ function OperatorNode({ data }: NodeProps) {
   const ks = kindStyle[node.kind] ?? kindStyle.operator
   const Icon = ks.icon
   const perTm = new Map<string, number>()
-  for (const s of node.subtasks) perTm.set(s.tm_id, (perTm.get(s.tm_id) ?? 0) + 1)
+  for (const s of node.subtasks) perTm.set(s.worker_id, (perTm.get(s.worker_id) ?? 0) + 1)
   const label = node.display_name || node.op_type
   const cap = stats?.input_capacity ?? 0
   const bp = cap > 0 ? (stats?.input_depth ?? 0) / cap : 0
@@ -119,9 +119,9 @@ function OperatorNode({ data }: NodeProps) {
       {perTm.size > 0 && (
         <div className="flex flex-wrap items-center gap-1 border-t border-border px-3 py-1.5">
           <Server className="h-3 w-3 text-muted-foreground/60" />
-          {[...perTm.entries()].map(([tm, n]) => (
-            <span key={tm} className="rounded bg-secondary px-1 py-0.5 font-mono text-[10px] text-secondary-foreground">
-              {tm}
+          {[...perTm.entries()].map(([worker, n]) => (
+            <span key={worker} className="rounded bg-secondary px-1 py-0.5 font-mono text-[10px] text-secondary-foreground">
+              {worker}
               {n > 1 ? ` x${n}` : ''}
             </span>
           ))}
@@ -218,7 +218,7 @@ export function JobGraph({
   }, [topoKey])
 
   // Placement + live-metric poll (same topology): merge node data in place so
-  // chips, the ×N badge, and TM chips update live without moving or re-fitting.
+  // chips, the ×N badge, and worker chips update live without moving or re-fitting.
   useEffect(() => {
     const byId = new Map(graph.nodes.map((n) => [n.id, n]))
     setNodes((prev) =>

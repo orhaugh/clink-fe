@@ -17,7 +17,7 @@ const nav = [
   { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/jobs', label: 'Jobs', icon: Workflow, end: false },
   { to: '/sql', label: 'SQL workbench', icon: Terminal, end: false },
-  { to: '/task-managers', label: 'TaskManagers', icon: Server, end: false },
+  { to: '/workers', label: 'Workers', icon: Server, end: false },
   { to: '/connectors', label: 'Connectors', icon: Plug, end: false },
   { to: '/submit', label: 'Submit job', icon: UploadCloud, end: false },
   { to: '/dashboards', label: 'Metrics', icon: Gauge, end: false },

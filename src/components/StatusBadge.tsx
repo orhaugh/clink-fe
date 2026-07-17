@@ -21,7 +21,7 @@ export function JobStateBadge({ state }: { state: JobState }) {
   )
 }
 
-export function TmStateBadge({ lost }: { lost: boolean }) {
+export function WorkerStateBadge({ lost }: { lost: boolean }) {
   return lost ? (
     <Badge variant="danger">
       <span className={cn(dot, 'bg-danger')} />

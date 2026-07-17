@@ -3,19 +3,19 @@
 // structs in include/clink/cluster/snapshots.hpp. See docs/clink-api.md.
 
 export interface Health {
-  role: string // "jm" | "tm"
+  role: string // "coordinator" | "worker"
   ok: boolean
   uptime_s: number
   bound_port: number
 }
 
-export interface TmSummary {
-  tm_id: string
+export interface WorkerSummary {
+  worker_id: string
   data_host: string
   slot_capacity: number
   slots_in_use: number
   lost: boolean
-  http_port: number // 0 = TM not exposing HTTP (detail/logs/metrics unreachable)
+  http_port: number // 0 = worker not exposing HTTP (detail/logs/metrics unreachable)
 }
 
 export interface ClusterSnapshot {
@@ -27,7 +27,7 @@ export interface ClusterSnapshot {
   jobs_total: number
   jobs_running: number
   jobs_completed: number
-  task_managers: TmSummary[]
+  workers: WorkerSummary[]
 }
 
 export interface JobSummary {
@@ -42,13 +42,13 @@ export interface JobSummary {
 export interface JobTask {
   role: string
   subtask_idx: number
-  tm_id: string
+  worker_id: string
 }
 
 export interface SubtaskErrorRecord {
   role: string
   subtask_idx: number
-  tm_id: string
+  worker_id: string
   attempt: number // job restart generation at time of failure (0 = first run)
   ts_ms: number
   message: string // operator exception text; includes a capture-site stack trace where available
@@ -69,7 +69,7 @@ export interface JobDetail {
 
 export interface GraphSubtaskPlacement {
   subtask_idx: number
-  tm_id: string
+  worker_id: string
   started_at_unix_ms?: number
   finished_at_unix_ms?: number
 }
@@ -102,11 +102,11 @@ export interface JobGraphDetail {
 }
 
 // Per-operator runtime stats (GET /api/v1/jobs/:id/operators). Aggregated by
-// the JM across every TM hosting the job; the finest separable granularity is
-// per-TM (the host registry is shared across a TM's subtasks), so per_tm rows
+// the coordinator across every worker hosting the job; the finest separable granularity is
+// per-worker (the host registry is shared across a worker's subtasks), so per_worker rows
 // accompany the node-level totals while subtasks[] carries the exact placement.
-export interface OperatorTmRow {
-  tm_id: string
+export interface OperatorWorkerRow {
+  worker_id: string
   records_in: number
   records_out: number
   input_depth: number
@@ -136,7 +136,7 @@ export interface OperatorRuntime {
   watermark_ms?: number
   accumulators: Record<string, number>
   subtasks: GraphSubtaskPlacement[]
-  per_tm: OperatorTmRow[]
+  per_worker: OperatorWorkerRow[]
 }
 
 export interface JobOperators {
@@ -145,13 +145,13 @@ export interface JobOperators {
   operators: OperatorRuntime[]
 }
 
-export interface TmSnapshot {
-  tm_id: string
+export interface WorkerSnapshot {
+  worker_id: string
   data_host: string
   slot_capacity: number
   slots_in_use: number
-  jm_host: string
-  jm_port: number
+  coordinator_host: string
+  coordinator_port: number
   active_subtasks: number
 }
 
@@ -162,7 +162,7 @@ export interface SubtaskRecord {
   status: string // "pending" | "ready"
 }
 
-export interface JmConfig {
+export interface CoordinatorConfig {
   bind_host: string
   advertise_host: string
   heartbeat_timeout_ms: number
@@ -171,7 +171,7 @@ export interface JmConfig {
   restart_drain_timeout_ms: number
 }
 
-export interface TmConfig {
+export interface WorkerConfig {
   slot_count: number
   heartbeat_interval_ms: number
 }
@@ -211,7 +211,7 @@ export interface RescaleAck {
 }
 
 // SSE event from /api/v1/events. The `type` is the SSE event name
-// (jm.tm_registered, jm.job_submitted, jm.job_completed, jm.tm_lost); `data`
+// (coordinator.worker_registered, coordinator.job_submitted, coordinator.job_completed, coordinator.worker_lost); `data`
 // is the raw payload string (often JSON or a short descriptor).
 export interface ClinkEvent {
   id: string

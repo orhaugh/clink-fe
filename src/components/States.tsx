@@ -18,7 +18,7 @@ export function ErrorState({ error, className }: { error: unknown; className?: s
       <div className="text-sm font-medium text-danger">Request failed</div>
       <div className="max-w-md font-mono text-xs text-muted-foreground">{msg}</div>
       <div className="mt-1 max-w-md text-xs text-muted-foreground">
-        Is a JobManager reachable at the configured target? See README for the dev proxy setup.
+        Is a Coordinator reachable at the configured target? See README for the dev proxy setup.
       </div>
     </div>
   )
