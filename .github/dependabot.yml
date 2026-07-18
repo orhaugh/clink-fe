@@ -1,0 +1,16 @@
+# Keep npm dependencies and GitHub Actions up to date.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      # One PR for the low-risk dev tooling churn; app deps stay individual.
+      dev-dependencies:
+        dependency-type: development
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly

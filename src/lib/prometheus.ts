@@ -85,7 +85,11 @@ export function familyTotal(v: MetricsView, name: string): number | undefined {
 
 // Samples of a family broken out by a label (e.g. volume). Returns one entry
 // per sample, with the label value (or '' when absent).
-export function byLabel(v: MetricsView, name: string, label: string): { key: string; value: number }[] {
+export function byLabel(
+  v: MetricsView,
+  name: string,
+  label: string,
+): { key: string; value: number }[] {
   const f = v.byName.get(name)
   if (!f) return []
   return f.samples.map((s) => ({ key: s.labels[label] ?? '', value: s.value }))

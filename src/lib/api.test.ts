@@ -35,14 +35,19 @@ afterEach(() => {
 
 describe('getJson-backed reads', () => {
   it('returns parsed JSON for a plain object endpoint', async () => {
-    mockFetch(() => resp({ json: { role: 'coordinator', ok: true, uptime_s: 1, bound_port: 7070 } }))
+    mockFetch(() =>
+      resp({ json: { role: 'coordinator', ok: true, uptime_s: 1, bound_port: 7070 } }),
+    )
     await expect(api.health()).resolves.toMatchObject({ role: 'coordinator', ok: true })
   })
 
   it('sends the accept: application/json header', async () => {
     const fn = mockFetch(() => resp({ json: {} }))
     await api.cluster()
-    expect(fn).toHaveBeenCalledWith('/api/v1/cluster', expect.objectContaining({ headers: { accept: 'application/json' } }))
+    expect(fn).toHaveBeenCalledWith(
+      '/api/v1/cluster',
+      expect.objectContaining({ headers: { accept: 'application/json' } }),
+    )
   })
 
   it('unwraps the envelope field for list endpoints', async () => {
@@ -102,13 +107,24 @@ describe('log query building', () => {
 
 describe('error handling', () => {
   it('throws ApiError carrying the body.error message', async () => {
-    mockFetch(() => resp({ ok: false, status: 400, statusText: 'Bad Request', json: { error: 'bad table' } }))
-    await expect(api.cluster()).rejects.toMatchObject({ name: 'ApiError', status: 400, message: 'bad table' })
+    mockFetch(() =>
+      resp({ ok: false, status: 400, statusText: 'Bad Request', json: { error: 'bad table' } }),
+    )
+    await expect(api.cluster()).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 400,
+      message: 'bad table',
+    })
   })
 
   it('falls back to status + statusText when the error body is not JSON', async () => {
-    mockFetch(() => resp({ ok: false, status: 503, statusText: 'Service Unavailable', jsonThrows: true }))
-    await expect(api.cluster()).rejects.toMatchObject({ status: 503, message: '503 Service Unavailable' })
+    mockFetch(() =>
+      resp({ ok: false, status: 503, statusText: 'Service Unavailable', jsonThrows: true }),
+    )
+    await expect(api.cluster()).rejects.toMatchObject({
+      status: 503,
+      message: '503 Service Unavailable',
+    })
   })
 
   it('getText throws ApiError on non-ok', async () => {
@@ -200,17 +216,34 @@ describe('runSql (never throws)', () => {
   })
 
   it('returns the parsed error body on a 400 rather than throwing', async () => {
-    mockFetch(() => resp({ ok: false, status: 400, json: { ok: false, error: 'syntax', position: 8 } }))
-    await expect(api.runSql('SELEC 1', 'compile')).resolves.toEqual({ ok: false, error: 'syntax', position: 8 })
+    mockFetch(() =>
+      resp({ ok: false, status: 400, json: { ok: false, error: 'syntax', position: 8 } }),
+    )
+    await expect(api.runSql('SELEC 1', 'compile')).resolves.toEqual({
+      ok: false,
+      error: 'syntax',
+      position: 8,
+    })
   })
 
   it('returns {ok:false} with the message when fetch itself rejects', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('network down') }))
-    await expect(api.runSql('SELECT 1', 'explain')).resolves.toEqual({ ok: false, error: 'network down' })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('network down')
+      }),
+    )
+    await expect(api.runSql('SELECT 1', 'explain')).resolves.toEqual({
+      ok: false,
+      error: 'network down',
+    })
   })
 
   it('returns {ok:false} with status text when the response is not JSON', async () => {
     mockFetch(() => resp({ status: 502, statusText: 'Bad Gateway', jsonThrows: true }))
-    await expect(api.runSql('SELECT 1', 'explain')).resolves.toEqual({ ok: false, error: '502 Bad Gateway' })
+    await expect(api.runSql('SELECT 1', 'explain')).resolves.toEqual({
+      ok: false,
+      error: '502 Bad Gateway',
+    })
   })
 })

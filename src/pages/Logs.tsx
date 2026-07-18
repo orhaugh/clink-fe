@@ -9,7 +9,13 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { ErrorState } from '@/components/States'
 import type { LogRecord } from '@/lib/types'
 
@@ -69,7 +75,11 @@ export function Logs() {
         title="Logs"
         description="Cluster-wide log stream. The Coordinator and every HTTP-enabled Worker are merged by timestamp."
         actions={
-          <Button variant={follow ? 'default' : 'outline'} size="sm" onClick={() => setFollow((f) => !f)}>
+          <Button
+            variant={follow ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFollow((f) => !f)}
+          >
             {follow ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             {follow ? 'Following' : 'Paused'}
           </Button>
@@ -138,7 +148,12 @@ export function Logs() {
       {anyError ? (
         <ErrorState error={anyError.error} />
       ) : (
-        <LogViewer records={merged} follow={follow} heightClass="h-[64vh]" emptyLabel="No matching log records" />
+        <LogViewer
+          records={merged}
+          follow={follow}
+          heightClass="h-[64vh]"
+          emptyLabel="No matching log records"
+        />
       )}
     </div>
   )
@@ -147,7 +162,9 @@ export function Logs() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
       {children}
     </div>
   )

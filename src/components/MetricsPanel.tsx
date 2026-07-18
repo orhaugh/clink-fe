@@ -30,15 +30,38 @@ export function MetricsPanel({ text, isLoading, isError, error }: MetricsPanelPr
   const ckptAvgMs = avgFromSumCount(view, 'clink_ckpt_duration_ms')
   type Tone = 'default' | 'ok' | 'warn' | 'danger' | 'info'
   const allCards: { label: string; value: string; tone: Tone; show: boolean }[] = [
-    { label: 'Checkpoints completed', value: fmtCount(ckptDone), tone: 'ok', show: ckptDone != null },
-    { label: 'Checkpoints failed', value: fmtCount(ckptFailed), tone: ckptFailed ? 'danger' : 'default', show: ckptFailed != null },
-    { label: 'Checkpoints triggered', value: fmtCount(ckptTriggered), tone: 'info', show: ckptTriggered != null },
-    { label: 'Avg checkpoint', value: ckptAvgMs != null ? fmtMs(ckptAvgMs) : '-', tone: 'default', show: ckptAvgMs != null },
+    {
+      label: 'Checkpoints completed',
+      value: fmtCount(ckptDone),
+      tone: 'ok',
+      show: ckptDone != null,
+    },
+    {
+      label: 'Checkpoints failed',
+      value: fmtCount(ckptFailed),
+      tone: ckptFailed ? 'danger' : 'default',
+      show: ckptFailed != null,
+    },
+    {
+      label: 'Checkpoints triggered',
+      value: fmtCount(ckptTriggered),
+      tone: 'info',
+      show: ckptTriggered != null,
+    },
+    {
+      label: 'Avg checkpoint',
+      value: ckptAvgMs != null ? fmtMs(ckptAvgMs) : '-',
+      tone: 'default',
+      show: ckptAvgMs != null,
+    },
   ]
   const cards = allCards.filter((c) => c.show)
 
   const families = view.families.filter(
-    (f) => !q || f.name.toLowerCase().includes(q.toLowerCase()) || f.help?.toLowerCase().includes(q.toLowerCase()),
+    (f) =>
+      !q ||
+      f.name.toLowerCase().includes(q.toLowerCase()) ||
+      f.help?.toLowerCase().includes(q.toLowerCase()),
   )
 
   // Process + host resources (clink_process_* / clink_disk_*). Single-sample
@@ -49,7 +72,9 @@ export function MetricsPanel({ text, isLoading, isError, error }: MetricsPanelPr
   const threads = familyTotal(view, 'clink_process_threads')
   // Disk is labeled per volume (workdir, checkpoint, ...). Join total + used by
   // the volume label so each filesystem gets its own card.
-  const usedByVol = new Map(byLabel(view, 'clink_disk_used_bytes', 'volume').map((d) => [d.key, d.value]))
+  const usedByVol = new Map(
+    byLabel(view, 'clink_disk_used_bytes', 'volume').map((d) => [d.key, d.value]),
+  )
   const disks = byLabel(view, 'clink_disk_total_bytes', 'volume').map((t) => ({
     volume: t.key || 'disk',
     total: t.value,
@@ -128,15 +153,33 @@ export function MetricsPanel({ text, isLoading, isError, error }: MetricsPanelPr
 function FamilyRow({ family }: { family: MetricFamily }) {
   const [open, setOpen] = useState(false)
   const total = family.samples.reduce((s, x) => s + x.value, 0)
-  const hasLabels = family.samples.some((s) => Object.keys(s.labels).length > 0) || family.samples.length > 1
+  const hasLabels =
+    family.samples.some((s) => Object.keys(s.labels).length > 0) || family.samples.length > 1
   return (
     <div className="px-4 py-2.5">
       <div
         className={cn('flex items-start gap-3', hasLabels && 'cursor-pointer')}
-        onClick={() => hasLabels && setOpen((o) => !o)}
+        role={hasLabels ? 'button' : undefined}
+        tabIndex={hasLabels ? 0 : undefined}
+        onClick={hasLabels ? () => setOpen((o) => !o) : undefined}
+        onKeyDown={
+          hasLabels
+            ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setOpen((o) => !o)
+                }
+              }
+            : undefined
+        }
       >
         {hasLabels ? (
-          <ChevronRight className={cn('mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-90')} />
+          <ChevronRight
+            className={cn(
+              'mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform',
+              open && 'rotate-90',
+            )}
+          />
         ) : (
           <span className="w-4 shrink-0" />
         )}
@@ -145,9 +188,13 @@ function FamilyRow({ family }: { family: MetricFamily }) {
             <span className="font-mono text-sm">{family.name}</span>
             {family.type && <Badge variant="muted">{family.type}</Badge>}
           </div>
-          {family.help && <div className="truncate text-xs text-muted-foreground">{family.help}</div>}
+          {family.help && (
+            <div className="truncate text-xs text-muted-foreground">{family.help}</div>
+          )}
         </div>
-        <span className="shrink-0 font-mono text-sm tabular-nums text-foreground">{fmtCount(total)}</span>
+        <span className="shrink-0 font-mono text-sm tabular-nums text-foreground">
+          {fmtCount(total)}
+        </span>
       </div>
       {open && hasLabels && (
         <div className="ml-7 mt-2 space-y-1 border-l border-border pl-3">
@@ -158,7 +205,9 @@ function FamilyRow({ family }: { family: MetricFamily }) {
                 {Object.keys(s.labels).length > 0 && (
                   <span className="text-primary/80">
                     {'{'}
-                    {Object.entries(s.labels).map(([k, v]) => `${k}="${v}"`).join(', ')}
+                    {Object.entries(s.labels)
+                      .map(([k, v]) => `${k}="${v}"`)
+                      .join(', ')}
                     {'}'}
                   </span>
                 )}

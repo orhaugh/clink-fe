@@ -12,28 +12,28 @@ same-origin (dev: the Vite proxy; prod: serve the SPA from the coordinator, or a
 
 ## Coordinator endpoints
 
-| Method | Path | Response |
-|---|---|---|
-| GET | `/api/v1/health` | `{ role, ok, uptime_s, bound_port }` |
-| GET | `/api/v1/cluster` | `ClusterSnapshot` (rollup + embedded `workers: WorkerSummary[]`) |
-| GET | `/api/v1/config` | `{ bind_host, advertise_host, heartbeat_timeout_ms, watchdog_interval_ms, submit_wait_for_slots_ms, restart_drain_timeout_ms }` |
-| GET | `/api/v1/jobs` | `{ jobs: JobSummary[] }` |
-| GET | `/api/v1/jobs/:id` | `JobDetail` (404 `{error}` if unknown) |
-| POST | `/api/v1/jobs` | multipart: file part `job_so` (+ optional text `job_name`) → `{ ok, job_id, name }` or `{ error }` |
-| POST | `/api/v1/jobs/spec` | JSON body (JobGraphSpec), `?name=` → `{ ok, job_id, name }` |
-| POST | `/api/v1/jobs/:id/cancel` | `{ job_id, ok, message }` (404/409 on unknown/already-complete/in-progress) |
-| POST | `/api/v1/jobs/:id/savepoint` | `?timeout_ms=` → `{ job_id, ok, checkpoint_id, checkpoint_dir, message }` (404/409 on failure) |
-| POST | `/api/v1/jobs/:id/rescale` | JSON body `{ "<role>": <parallelism>, ... }` (scale-up only) → `{ job_id, ok, message }` |
-| GET | `/api/v1/workers` | `{ workers: WorkerSummary[] }` |
-| GET | `/api/v1/workers/:id/worker` | `WorkerSnapshot` (proxied) |
-| GET | `/api/v1/workers/:id/subtasks` | `{ subtasks: SubtaskRecord[] }` (proxied) |
-| GET | `/api/v1/workers/:id/config` | `{ slot_count, heartbeat_interval_ms }` (proxied) |
-| GET | `/api/v1/workers/:id/metrics` | Prometheus text (proxied) |
-| GET | `/api/v1/workers/:id/logs` | `{ logs: LogRecord[] }` (proxied) |
-| GET | `/api/v1/logs` | `{ logs: LogRecord[] }`; `?level&limit&since_ms&source` |
-| GET | `/api/v1/logs/components` | `{ components: string[] }` |
-| GET | `/metrics` | Prometheus exposition text (incl. system gauges, below) |
-| GET | `/api/v1/events` | SSE; event names `coordinator.worker_registered`, `coordinator.worker_lost`, `coordinator.job_submitted`, `coordinator.job_completed` |
+| Method | Path                           | Response                                                                                                                              |
+| ------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/health`               | `{ role, ok, uptime_s, bound_port }`                                                                                                  |
+| GET    | `/api/v1/cluster`              | `ClusterSnapshot` (rollup + embedded `workers: WorkerSummary[]`)                                                                      |
+| GET    | `/api/v1/config`               | `{ bind_host, advertise_host, heartbeat_timeout_ms, watchdog_interval_ms, submit_wait_for_slots_ms, restart_drain_timeout_ms }`       |
+| GET    | `/api/v1/jobs`                 | `{ jobs: JobSummary[] }`                                                                                                              |
+| GET    | `/api/v1/jobs/:id`             | `JobDetail` (404 `{error}` if unknown)                                                                                                |
+| POST   | `/api/v1/jobs`                 | multipart: file part `job_so` (+ optional text `job_name`) → `{ ok, job_id, name }` or `{ error }`                                    |
+| POST   | `/api/v1/jobs/spec`            | JSON body (JobGraphSpec), `?name=` → `{ ok, job_id, name }`                                                                           |
+| POST   | `/api/v1/jobs/:id/cancel`      | `{ job_id, ok, message }` (404/409 on unknown/already-complete/in-progress)                                                           |
+| POST   | `/api/v1/jobs/:id/savepoint`   | `?timeout_ms=` → `{ job_id, ok, checkpoint_id, checkpoint_dir, message }` (404/409 on failure)                                        |
+| POST   | `/api/v1/jobs/:id/rescale`     | JSON body `{ "<role>": <parallelism>, ... }` (scale-up only) → `{ job_id, ok, message }`                                              |
+| GET    | `/api/v1/workers`              | `{ workers: WorkerSummary[] }`                                                                                                        |
+| GET    | `/api/v1/workers/:id/worker`   | `WorkerSnapshot` (proxied)                                                                                                            |
+| GET    | `/api/v1/workers/:id/subtasks` | `{ subtasks: SubtaskRecord[] }` (proxied)                                                                                             |
+| GET    | `/api/v1/workers/:id/config`   | `{ slot_count, heartbeat_interval_ms }` (proxied)                                                                                     |
+| GET    | `/api/v1/workers/:id/metrics`  | Prometheus text (proxied)                                                                                                             |
+| GET    | `/api/v1/workers/:id/logs`     | `{ logs: LogRecord[] }` (proxied)                                                                                                     |
+| GET    | `/api/v1/logs`                 | `{ logs: LogRecord[] }`; `?level&limit&since_ms&source`                                                                               |
+| GET    | `/api/v1/logs/components`      | `{ components: string[] }`                                                                                                            |
+| GET    | `/metrics`                     | Prometheus exposition text (incl. system gauges, below)                                                                               |
+| GET    | `/api/v1/events`               | SSE; event names `coordinator.worker_registered`, `coordinator.worker_lost`, `coordinator.job_submitted`, `coordinator.job_completed` |
 
 Proxy routes return 404 if the worker is unknown/lost/has no HTTP listener, 502 if
 unreachable.
@@ -129,8 +129,12 @@ and later requests. For each `INSERT` / `CREATE MATERIALIZED VIEW` (and an
 explicit `EXPLAIN`) the mode decides the action. Response (200):
 
 ```jsonc
-{ "ok": true, "mode": "explain", "applied": 2,
-  "plans": [ { "kind": "insert", "explain": "Sink [..]\n  Project [..]\n    Scan [..]" } ] }
+{
+  "ok": true,
+  "mode": "explain",
+  "applied": 2,
+  "plans": [{ "kind": "insert", "explain": "Sink [..]\n  Project [..]\n    Scan [..]" }],
+}
 // mode=compile -> "specs": [ { "name": "sql_job", "spec_json": "<JobGraphSpec JSON string>" } ]
 // mode=submit  -> "jobs":  [ { "name": "sql_job", "job_id": 7 } ]
 ```

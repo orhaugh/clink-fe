@@ -82,7 +82,10 @@ describe('useEvents', () => {
     act(() => es().emit('coordinator.job_submitted', 'job 1'))
     act(() => es().emit('coordinator.job_completed', 'job 1 done'))
     expect(result.current.events).toHaveLength(2)
-    expect(result.current.events[0]).toMatchObject({ type: 'coordinator.job_completed', data: 'job 1 done' })
+    expect(result.current.events[0]).toMatchObject({
+      type: 'coordinator.job_completed',
+      data: 'job 1 done',
+    })
     expect(result.current.events[1]).toMatchObject({ type: 'coordinator.job_submitted' })
   })
 

@@ -1,14 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  ChevronDown,
-  ChevronRight,
-  Copy,
-  FileCode2,
-  KeyRound,
-  Play,
-  Send,
-} from 'lucide-react'
+import { ChevronDown, ChevronRight, Copy, FileCode2, KeyRound, Play, Send } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { SqlEditor } from '@/components/SqlEditor'
 import { ExplainPlan } from '@/components/ExplainPlan'
@@ -68,30 +60,31 @@ function CatalogueRow({
   const pk = new Set(table.primary_key ?? [])
   return (
     <div className="rounded-md border border-border/60">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm hover:bg-accent/50"
-      >
-        {expanded ? (
-          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        ) : (
-          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        )}
-        <span
-          className="min-w-0 flex-1 truncate font-mono"
-          onClick={(e) => {
-            e.stopPropagation()
-            onInsert(table.name)
-          }}
-          title="Click to insert into the editor"
+      <div className="flex w-full items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent/50">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={expanded ? 'Collapse table' : 'Expand table'}
+          className="shrink-0 text-muted-foreground"
+        >
+          {expanded ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5" />
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => onInsert(table.name)}
+          title="Insert into the editor"
+          className="min-w-0 flex-1 truncate text-left font-mono"
         >
           {table.name}
-        </span>
+        </button>
         <Badge variant={kindTone(table.kind)} className="shrink-0">
           {table.kind === 'materialized_view' ? 'matview' : table.kind}
         </Badge>
-      </button>
+      </div>
       {expanded && (
         <div className="space-y-1 border-t border-border/60 px-3 py-2">
           {table.connector && (
@@ -239,7 +232,8 @@ export function SqlWorkbench() {
     return (catalog.data ?? []).filter((t) => !f || t.name.toLowerCase().includes(f))
   }, [catalog.data, filter])
 
-  const insert = (snippet: string) => setSqlText((t) => (t.endsWith('\n') || t === '' ? t : t + '\n') + snippet)
+  const insert = (snippet: string) =>
+    setSqlText((t) => (t.endsWith('\n') || t === '' ? t : t + '\n') + snippet)
 
   const run = async (mode: SqlMode) => {
     setLastMode(mode)
@@ -324,8 +318,11 @@ export function SqlWorkbench() {
         <div className="space-y-4">
           <div className="flex flex-wrap items-end gap-3">
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Parallelism</label>
+              <label htmlFor="sql-parallelism" className="text-xs text-muted-foreground">
+                Parallelism
+              </label>
               <Input
+                id="sql-parallelism"
                 type="number"
                 min={1}
                 value={parallelism}
@@ -334,8 +331,11 @@ export function SqlWorkbench() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Job name (optional)</label>
+              <label htmlFor="sql-job-name" className="text-xs text-muted-foreground">
+                Job name (optional)
+              </label>
               <Input
+                id="sql-job-name"
                 value={jobName}
                 onChange={(e) => setJobName(e.target.value)}
                 placeholder="sql_job"
@@ -361,7 +361,8 @@ export function SqlWorkbench() {
             <ResultPanel mode={lastMode} result={result} />
           ) : (
             <div className="text-sm text-muted-foreground">
-              Explain inspects the plan, Compile returns the JobGraphSpec, Submit runs it on the cluster.
+              Explain inspects the plan, Compile returns the JobGraphSpec, Submit runs it on the
+              cluster.
             </div>
           )}
         </div>

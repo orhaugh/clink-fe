@@ -23,7 +23,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import {
   Dialog,
   DialogClose,
@@ -68,15 +75,28 @@ export function JobDetail() {
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Progress" value={`${progress}%`} sub={`${j.completed_count}/${j.expected_completion} subtasks`} tone="info" />
+        <StatCard
+          label="Progress"
+          value={`${progress}%`}
+          sub={`${j.completed_count}/${j.expected_completion} subtasks`}
+          tone="info"
+        />
         <StatCard label="Subtasks" value={j.tasks.length} />
         <StatCard
           label="Latest checkpoint"
           value={j.latest_completed_checkpoint_id || '-'}
-          sub={j.pending_checkpoint_ids.length > 0 ? `${j.pending_checkpoint_ids.length} pending` : 'none pending'}
+          sub={
+            j.pending_checkpoint_ids.length > 0
+              ? `${j.pending_checkpoint_ids.length} pending`
+              : 'none pending'
+          }
           icon={GitCommitHorizontal}
         />
-        <StatCard label="Failures" value={j.subtask_errors.length || j.errors.length} tone={j.errors.length > 0 ? 'danger' : 'ok'} />
+        <StatCard
+          label="Failures"
+          value={j.subtask_errors.length || j.errors.length}
+          tone={j.errors.length > 0 ? 'danger' : 'ok'}
+        />
       </div>
 
       <GraphSection jobId={j.id} />
@@ -106,7 +126,10 @@ export function JobDetail() {
                     <TableCell className="tabular-nums">{t.subtask_idx}</TableCell>
                     <TableCell>
                       {t.worker_id ? (
-                        <Link to={`/workers/${t.worker_id}`} className="font-mono text-primary hover:underline">
+                        <Link
+                          to={`/workers/${t.worker_id}`}
+                          className="font-mono text-primary hover:underline"
+                        >
                           {t.worker_id}
                         </Link>
                       ) : (
@@ -132,7 +155,10 @@ function JobActions({ job, running }: { job: JobDetailT; running: boolean }) {
     const t = toast.loading(`Taking savepoint of job #${job.id}...`)
     const ack = await savepoint.mutateAsync({ id: job.id })
     if (ack.ok) {
-      toast.success(`Savepoint ${ack.checkpoint_id}`, { id: t, description: ack.checkpoint_dir || ack.message })
+      toast.success(`Savepoint ${ack.checkpoint_id}`, {
+        id: t,
+        description: ack.checkpoint_dir || ack.message,
+      })
     } else {
       toast.error('Savepoint failed', { id: t, description: ack.message })
     }
@@ -162,7 +188,8 @@ function JobActions({ job, running }: { job: JobDetailT; running: boolean }) {
           <DialogHeader>
             <DialogTitle>Cancel job #{job.id}?</DialogTitle>
             <DialogDescription>
-              Requests a graceful cancel. Subtasks drain via their cancellation paths; the job will not restart.
+              Requests a graceful cancel. Subtasks drain via their cancellation paths; the job will
+              not restart.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -217,8 +244,8 @@ function RescaleDialog({ job, disabled }: { job: JobDetailT; disabled: boolean }
         <DialogHeader>
           <DialogTitle>Rescale job #{job.id}</DialogTitle>
           <DialogDescription>
-            Set a new parallelism per role. Scale-up only: each value must be a positive multiple of the current
-            parallelism. Keyed state is preserved across the rescale.
+            Set a new parallelism per role. Scale-up only: each value must be a positive multiple of
+            the current parallelism. Keyed state is preserved across the rescale.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 py-2">
@@ -295,7 +322,7 @@ function GraphSection({ jobId }: { jobId: number }) {
     setRates(next)
   }, [ops.data])
 
-  const selectedOp = selected ? statsByNode[selected] ?? null : null
+  const selectedOp = selected ? (statsByNode[selected] ?? null) : null
 
   return (
     <Card>
@@ -327,10 +354,20 @@ function GraphSection({ jobId }: { jobId: number }) {
               <Legend swatch="bg-info" label="source" />
               <Legend swatch="bg-ok" label="sink" />
               <Legend swatch="bg-warn" label="keyed (key glyph)" />
-              <span className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 bg-muted-foreground" /> forward</span>
-              <span className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 border-t border-dashed border-warn" /> rebalance</span>
-              <span className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 bg-primary" /> hash-partitioned</span>
-              <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-ok" /> backpressure (green/amber/red)</span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-0.5 w-4 bg-muted-foreground" /> forward
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-0.5 w-4 border-t border-dashed border-warn" />{' '}
+                rebalance
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-0.5 w-4 bg-primary" /> hash-partitioned
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-2 w-2 rounded-full bg-ok" /> backpressure
+                (green/amber/red)
+              </span>
               <span>▸/s = records per second; click a node for detail</span>
             </div>
           </>
@@ -369,12 +406,17 @@ function FailuresPanel({ job }: { job: JobDetailT }) {
                     {se.role}[{se.subtask_idx}]
                   </span>
                   {se.worker_id && (
-                    <Link to={`/workers/${se.worker_id}`} className="font-mono text-primary hover:underline">
+                    <Link
+                      to={`/workers/${se.worker_id}`}
+                      className="font-mono text-primary hover:underline"
+                    >
                       {se.worker_id}
                     </Link>
                   )}
                   <Badge variant="muted">attempt {se.attempt}</Badge>
-                  {se.ts_ms > 0 && <span className="text-muted-foreground">{fmtDateTime(se.ts_ms)}</span>}
+                  {se.ts_ms > 0 && (
+                    <span className="text-muted-foreground">{fmtDateTime(se.ts_ms)}</span>
+                  )}
                 </div>
                 <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words p-3 font-mono text-xs text-danger/90">
                   {se.message}
@@ -390,9 +432,9 @@ function FailuresPanel({ job }: { job: JobDetailT }) {
               </pre>
             ))}
         <p className="text-xs text-muted-foreground">
-          Messages carry the operator exception text and, where the node toolchain supports it, a capture-site stack
-          trace. The trace is taken in the runner thread (post-unwind), so it shows the runner to operator call chain
-          rather than the exact throw frame.
+          Messages carry the operator exception text and, where the node toolchain supports it, a
+          capture-site stack trace. The trace is taken in the runner thread (post-unwind), so it
+          shows the runner to operator call chain rather than the exact throw frame.
         </p>
       </CardContent>
     </Card>

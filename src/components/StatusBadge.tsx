@@ -4,7 +4,10 @@ import type { JobState } from '@/lib/types'
 
 const dot = 'mr-1.5 inline-block h-1.5 w-1.5 rounded-full'
 
-const jobVariant: Record<JobState, { variant: 'ok' | 'info' | 'danger' | 'muted'; dot: string; label: string }> = {
+const jobVariant: Record<
+  JobState,
+  { variant: 'ok' | 'info' | 'danger' | 'muted'; dot: string; label: string }
+> = {
   running: { variant: 'info', dot: 'bg-info animate-pulse-dot', label: 'Running' },
   completed: { variant: 'ok', dot: 'bg-ok', label: 'Completed' },
   failed: { variant: 'danger', dot: 'bg-danger', label: 'Failed' },
@@ -54,6 +57,8 @@ const logToneClass: Record<string, string> = {
 
 export function LogLevelBadge({ level }: { level: string }) {
   return (
-    <span className={cn('font-mono text-xs uppercase', logToneClass[level] ?? 'text-foreground')}>{level}</span>
+    <span className={cn('font-mono text-xs uppercase', logToneClass[level] ?? 'text-foreground')}>
+      {level}
+    </span>
   )
 }

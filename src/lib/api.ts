@@ -122,10 +122,14 @@ export const api = {
     getJson<{ workers: WorkerSummary[] }>('/api/v1/workers', s).then((r) => r.workers),
 
   // --- Worker detail (proxied through the coordinator by worker_id) ---
-  worker: (id: string, s?: AbortSignal) => getJson<WorkerSnapshot>(`/api/v1/workers/${id}/worker`, s),
+  worker: (id: string, s?: AbortSignal) =>
+    getJson<WorkerSnapshot>(`/api/v1/workers/${id}/worker`, s),
   workerSubtasks: (id: string, s?: AbortSignal) =>
-    getJson<{ subtasks: SubtaskRecord[] }>(`/api/v1/workers/${id}/subtasks`, s).then((r) => r.subtasks),
-  workerConfig: (id: string, s?: AbortSignal) => getJson<WorkerConfig>(`/api/v1/workers/${id}/config`, s),
+    getJson<{ subtasks: SubtaskRecord[] }>(`/api/v1/workers/${id}/subtasks`, s).then(
+      (r) => r.subtasks,
+    ),
+  workerConfig: (id: string, s?: AbortSignal) =>
+    getJson<WorkerConfig>(`/api/v1/workers/${id}/config`, s),
   workerMetrics: (id: string, s?: AbortSignal) => getText(`/api/v1/workers/${id}/metrics`, s),
   workerLogs: (id: string, q?: LogQuery, s?: AbortSignal) =>
     getJson<{ logs: LogRecord[] }>(logPath(`/api/v1/workers/${id}/logs`, q), s).then((r) => r.logs),

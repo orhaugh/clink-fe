@@ -15,7 +15,14 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import dagre from '@dagrejs/dagre'
-import { Database, KeyRound, Workflow as Cog, ArrowRightToLine, Server, AlertTriangle } from 'lucide-react'
+import {
+  Database,
+  KeyRound,
+  Workflow as Cog,
+  ArrowRightToLine,
+  Server,
+  AlertTriangle,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { fmtCount } from '@/lib/format'
 import type { GraphEdge, GraphNode, JobGraphDetail, OperatorRuntime } from '@/lib/types'
@@ -62,7 +69,11 @@ function OperatorNode({ data }: NodeProps) {
         stats?.stale && 'opacity-70',
       )}
     >
-      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-muted-foreground" />
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!h-2 !w-2 !border-0 !bg-muted-foreground"
+      />
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
         <span className="truncate font-mono text-xs font-medium" title={label}>
@@ -77,7 +88,9 @@ function OperatorNode({ data }: NodeProps) {
         <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
           {node.out_channel}
         </span>
-        <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70">{ks.label}</span>
+        <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70">
+          {ks.label}
+        </span>
       </div>
       {/* Live metrics row: records/sec in & out, backpressure dot, drop badge. */}
       <div className="flex flex-wrap items-center gap-1.5 border-t border-border px-3 py-1.5 font-mono text-[10px]">
@@ -94,12 +107,18 @@ function OperatorNode({ data }: NodeProps) {
               </span>
             )}
             {cap > 0 && (
-              <span className="ml-auto flex items-center gap-1 text-muted-foreground" title={`backpressure ${(bp * 100).toFixed(0)}%`}>
+              <span
+                className="ml-auto flex items-center gap-1 text-muted-foreground"
+                title={`backpressure ${(bp * 100).toFixed(0)}%`}
+              >
                 <span className={cn('inline-block h-2 w-2 rounded-full', bpColor(bp))} />
               </span>
             )}
             {stats.records_dropped > 0 && (
-              <span className="rounded bg-danger/20 px-1 py-0.5 text-danger" title="records dropped">
+              <span
+                className="rounded bg-danger/20 px-1 py-0.5 text-danger"
+                title="records dropped"
+              >
                 ⚠ {fmtCount(stats.records_dropped)}
               </span>
             )}
@@ -120,14 +139,21 @@ function OperatorNode({ data }: NodeProps) {
         <div className="flex flex-wrap items-center gap-1 border-t border-border px-3 py-1.5">
           <Server className="h-3 w-3 text-muted-foreground/60" />
           {[...perTm.entries()].map(([worker, n]) => (
-            <span key={worker} className="rounded bg-secondary px-1 py-0.5 font-mono text-[10px] text-secondary-foreground">
+            <span
+              key={worker}
+              className="rounded bg-secondary px-1 py-0.5 font-mono text-[10px] text-secondary-foreground"
+            >
               {worker}
               {n > 1 ? ` x${n}` : ''}
             </span>
           ))}
         </div>
       )}
-      <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-muted-foreground" />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!h-2 !w-2 !border-0 !bg-muted-foreground"
+      />
     </div>
   )
 }
@@ -239,7 +265,9 @@ export function JobGraph({
   }, [graph, statsByNode, ratesByNode])
 
   return (
-    <div className={cn('h-[460px] w-full overflow-hidden rounded-lg border bg-background', className)}>
+    <div
+      className={cn('h-[460px] w-full overflow-hidden rounded-lg border bg-background', className)}
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}

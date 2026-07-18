@@ -5,7 +5,14 @@ import { useEventsContext } from '@/components/EventsProvider'
 import { PageHeader } from '@/components/PageHeader'
 import { StatCard } from '@/components/StatCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { ErrorState, LoadingState, EmptyState } from '@/components/States'
 import { JobStateBadge, WorkerStateBadge } from '@/components/StatusBadge'
 import { deriveJobState } from '@/lib/types'
@@ -23,7 +30,10 @@ export function Overview() {
   const c = cluster.data
   const liveTms = c.workers.filter((t) => !t.lost).length
   const lostTms = c.workers.length - liveTms
-  const recentJobs = (jobs.data ?? []).slice().sort((a, b) => b.id - a.id).slice(0, 6)
+  const recentJobs = (jobs.data ?? [])
+    .slice()
+    .sort((a, b) => b.id - a.id)
+    .slice(0, 6)
 
   return (
     <div className="space-y-6">
@@ -35,7 +45,11 @@ export function Overview() {
           value={`${c.slots_in_use}/${c.total_slot_capacity}`}
           sub={`${pct(c.slots_in_use, c.total_slot_capacity)}% utilised`}
           icon={Cpu}
-          tone={c.total_slot_capacity > 0 && c.slots_in_use >= c.total_slot_capacity ? 'warn' : 'default'}
+          tone={
+            c.total_slot_capacity > 0 && c.slots_in_use >= c.total_slot_capacity
+              ? 'warn'
+              : 'default'
+          }
         />
         <StatCard
           label="Workers"
@@ -44,7 +58,13 @@ export function Overview() {
           icon={Server}
           tone={lostTms > 0 ? 'danger' : 'ok'}
         />
-        <StatCard label="Jobs running" value={c.jobs_running} sub={`${c.jobs_total} total`} icon={Workflow} tone="info" />
+        <StatCard
+          label="Jobs running"
+          value={c.jobs_running}
+          sub={`${c.jobs_total} total`}
+          icon={Workflow}
+          tone="info"
+        />
         <StatCard label="Jobs completed" value={c.jobs_completed} icon={CheckCircle2} tone="ok" />
       </div>
 
@@ -58,7 +78,10 @@ export function Overview() {
           </CardHeader>
           <CardContent className="px-0">
             {c.workers.length === 0 ? (
-              <EmptyState label="No Workers registered" hint="Start a worker pointing at this Coordinator." />
+              <EmptyState
+                label="No Workers registered"
+                hint="Start a worker pointing at this Coordinator."
+              />
             ) : (
               <Table>
                 <TableHeader>
@@ -73,11 +96,16 @@ export function Overview() {
                   {c.workers.map((t) => (
                     <TableRow key={t.worker_id}>
                       <TableCell>
-                        <Link to={`/workers/${t.worker_id}`} className="font-mono text-primary hover:underline">
+                        <Link
+                          to={`/workers/${t.worker_id}`}
+                          className="font-mono text-primary hover:underline"
+                        >
                           {t.worker_id}
                         </Link>
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{t.data_host}</TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {t.data_host}
+                      </TableCell>
                       <TableCell className="tabular-nums">
                         {t.slots_in_use}/{t.slot_capacity}
                       </TableCell>
@@ -95,14 +123,19 @@ export function Overview() {
         <Card>
           <CardHeader className="flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <Radio className={cn('h-4 w-4', state === 'open' ? 'text-ok' : 'text-muted-foreground')} />
+              <Radio
+                className={cn('h-4 w-4', state === 'open' ? 'text-ok' : 'text-muted-foreground')}
+              />
               Live events
             </CardTitle>
             <span className="text-xs text-muted-foreground">{state}</span>
           </CardHeader>
           <CardContent className="px-0">
             {events.length === 0 ? (
-              <EmptyState label="No events yet" hint="worker registrations, job submissions and completions stream here." />
+              <EmptyState
+                label="No events yet"
+                hint="worker registrations, job submissions and completions stream here."
+              />
             ) : (
               <ul className="max-h-80 divide-y divide-border overflow-auto">
                 {events.map((e) => (
@@ -111,12 +144,17 @@ export function Overview() {
                     <div className="min-w-0 flex-1">
                       <div className="font-mono text-xs text-primary">{e.type}</div>
                       {e.data && e.data !== 'undefined' && (
-                        <div className="truncate font-mono text-xs text-muted-foreground" title={e.data}>
+                        <div
+                          className="truncate font-mono text-xs text-muted-foreground"
+                          title={e.data}
+                        >
                           {e.data}
                         </div>
                       )}
                     </div>
-                    <span className="shrink-0 text-xs text-muted-foreground">{fmtRelative(e.ts)}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {fmtRelative(e.ts)}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -134,7 +172,10 @@ export function Overview() {
         </CardHeader>
         <CardContent className="px-0">
           {recentJobs.length === 0 ? (
-            <EmptyState label="No jobs submitted" hint="Submit a compiled job .so or a JSON spec." />
+            <EmptyState
+              label="No jobs submitted"
+              hint="Submit a compiled job .so or a JSON spec."
+            />
           ) : (
             <Table>
               <TableHeader>
@@ -159,7 +200,9 @@ export function Overview() {
                     <TableCell className="tabular-nums text-muted-foreground">
                       {j.completed_count}/{j.expected_completion}
                     </TableCell>
-                    <TableCell className={j.error_count > 0 ? 'text-danger' : 'text-muted-foreground'}>
+                    <TableCell
+                      className={j.error_count > 0 ? 'text-danger' : 'text-muted-foreground'}
+                    >
                       {j.error_count}
                     </TableCell>
                   </TableRow>

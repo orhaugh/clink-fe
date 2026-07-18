@@ -14,7 +14,13 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
   )
 }
 
-export function OperatorDetail({ op, onClose }: { op: OperatorRuntime | null; onClose: () => void }) {
+export function OperatorDetail({
+  op,
+  onClose,
+}: {
+  op: OperatorRuntime | null
+  onClose: () => void
+}) {
   const open = op != null
   const cap = op?.input_capacity ?? 0
   const bp = cap > 0 ? (op!.input_depth ?? 0) / cap : 0
@@ -28,10 +34,22 @@ export function OperatorDetail({ op, onClose }: { op: OperatorRuntime | null; on
             <DialogHeader>
               <DialogTitle className="flex flex-wrap items-center gap-2 font-mono text-sm">
                 <span>{op.display_name || op.op_type}</span>
-                <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] text-primary">×{op.parallelism}</span>
-                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">{op.kind}</span>
-                {op.keyed && <span className="rounded bg-warn/20 px-1.5 py-0.5 text-[10px] text-warn">keyed</span>}
-                {op.stale && <span className="rounded bg-danger/20 px-1.5 py-0.5 text-[10px] text-danger">stale</span>}
+                <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] text-primary">
+                  ×{op.parallelism}
+                </span>
+                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
+                  {op.kind}
+                </span>
+                {op.keyed && (
+                  <span className="rounded bg-warn/20 px-1.5 py-0.5 text-[10px] text-warn">
+                    keyed
+                  </span>
+                )}
+                {op.stale && (
+                  <span className="rounded bg-danger/20 px-1.5 py-0.5 text-[10px] text-danger">
+                    stale
+                  </span>
+                )}
               </DialogTitle>
             </DialogHeader>
 
@@ -45,14 +63,40 @@ export function OperatorDetail({ op, onClose }: { op: OperatorRuntime | null; on
 
               {op.metrics_available ? (
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <Stat label="records in" value={fmtCount(op.records_in)} hint={String(op.records_in)} />
-                  <Stat label="records out" value={fmtCount(op.records_out)} hint={String(op.records_out)} />
-                  <Stat label="dropped" value={fmtCount(op.records_dropped)} hint={String(op.records_dropped)} />
-                  <Stat label="side output" value={fmtCount(op.side_output)} hint={String(op.side_output)} />
-                  <Stat label="bytes sent" value={fmtBytes(op.bytes_sent)} hint={String(op.bytes_sent)} />
-                  <Stat label="bytes received" value={fmtBytes(op.bytes_received)} hint={String(op.bytes_received)} />
+                  <Stat
+                    label="records in"
+                    value={fmtCount(op.records_in)}
+                    hint={String(op.records_in)}
+                  />
+                  <Stat
+                    label="records out"
+                    value={fmtCount(op.records_out)}
+                    hint={String(op.records_out)}
+                  />
+                  <Stat
+                    label="dropped"
+                    value={fmtCount(op.records_dropped)}
+                    hint={String(op.records_dropped)}
+                  />
+                  <Stat
+                    label="side output"
+                    value={fmtCount(op.side_output)}
+                    hint={String(op.side_output)}
+                  />
+                  <Stat
+                    label="bytes sent"
+                    value={fmtBytes(op.bytes_sent)}
+                    hint={String(op.bytes_sent)}
+                  />
+                  <Stat
+                    label="bytes received"
+                    value={fmtBytes(op.bytes_received)}
+                    hint={String(op.bytes_received)}
+                  />
                   <div className="rounded-md border border-border bg-card px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">backpressure</div>
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      backpressure
+                    </div>
                     <div className={cn('font-mono text-sm', bpColor)}>
                       {cap > 0 ? `${(bp * 100).toFixed(0)}%` : 'n/a'}
                     </div>
@@ -62,13 +106,19 @@ export function OperatorDetail({ op, onClose }: { op: OperatorRuntime | null; on
                   </div>
                   <Stat
                     label="watermark"
-                    value={op.has_watermark && op.watermark_ms != null ? fmtRelative(op.watermark_ms) : 'n/a'}
+                    value={
+                      op.has_watermark && op.watermark_ms != null
+                        ? fmtRelative(op.watermark_ms)
+                        : 'n/a'
+                    }
                     hint={op.watermark_ms != null ? String(op.watermark_ms) : undefined}
                   />
                 </div>
               ) : (
                 <div className="rounded-md border border-dashed border-border px-3 py-4 text-center text-muted-foreground">
-                  {op.stale ? 'A hosting Worker was unreachable.' : 'No runtime metrics reported yet.'}
+                  {op.stale
+                    ? 'A hosting Worker was unreachable.'
+                    : 'No runtime metrics reported yet.'}
                 </div>
               )}
 
@@ -106,7 +156,10 @@ export function OperatorDetail({ op, onClose }: { op: OperatorRuntime | null; on
                           const finished = s.finished_at_unix_ms || 0
                           const dur = started ? (finished || Date.now()) - started : 0
                           return (
-                            <tr key={`${s.subtask_idx}-${s.worker_id}`} className="border-t border-border/60">
+                            <tr
+                              key={`${s.subtask_idx}-${s.worker_id}`}
+                              className="border-t border-border/60"
+                            >
                               <td className="px-2 py-1">#{s.subtask_idx}</td>
                               <td className="px-2 py-1">{s.worker_id}</td>
                               <td className="px-2 py-1">{started ? fmtRelative(started) : '-'}</td>

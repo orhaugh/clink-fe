@@ -62,8 +62,16 @@ function Checkpoints({ v }: { v: MetricsView }) {
     <Section title="Checkpoints">
       <div className={grid}>
         <Stat label="Triggered" value={n(familyTotal(v, 'clink_ckpt_triggered_total'))} />
-        <Stat label="Completed" value={n(familyTotal(v, 'clink_ckpt_completed_total'))} tone="text-ok" />
-        <Stat label="Failed" value={n(familyTotal(v, 'clink_ckpt_failed_total'))} tone="text-danger" />
+        <Stat
+          label="Completed"
+          value={n(familyTotal(v, 'clink_ckpt_completed_total'))}
+          tone="text-ok"
+        />
+        <Stat
+          label="Failed"
+          value={n(familyTotal(v, 'clink_ckpt_failed_total'))}
+          tone="text-danger"
+        />
         <Stat label="Mean duration" value={ms(avgFromSumCount(v, 'clink_ckpt_duration_ms'))} />
         <Stat
           label="Mean restore"
@@ -73,7 +81,10 @@ function Checkpoints({ v }: { v: MetricsView }) {
               : undefined,
           )}
         />
-        <Stat label="Subtask acks" value={n(familyTotal(v, 'clink_ckpt_subtask_snapshot_ack_total'))} />
+        <Stat
+          label="Subtask acks"
+          value={n(familyTotal(v, 'clink_ckpt_subtask_snapshot_ack_total'))}
+        />
         <Stat
           label="Subtask ack failures"
           value={n(familyTotal(v, 'clink_ckpt_subtask_snapshot_failure_total'))}
@@ -87,7 +98,9 @@ function StateDisagg({ v }: { v: MetricsView }) {
   const hits = familyTotal(v, 'clink_disagg_remote_hot_hits_total')
   const loads = familyTotal(v, 'clink_disagg_remote_loads_total')
   const hitRate =
-    hits != null && loads != null && hits + loads > 0 ? `${pct(hits, hits + loads).toFixed(0)}%` : '-'
+    hits != null && loads != null && hits + loads > 0
+      ? `${pct(hits, hits + loads).toFixed(0)}%`
+      : '-'
   return (
     <Section title="State &amp; disaggregation">
       <div className={grid}>
@@ -107,16 +120,19 @@ function StateDisagg({ v }: { v: MetricsView }) {
           value={n(familyTotal(v, 'clink_disagg_hot_evictions_total'))}
           tone="text-warn"
         />
+        <Stat label="Hot resident" value={fmtBytes(scalar(v, 'clink_disagg_hot_resident_bytes'))} />
         <Stat
-          label="Hot resident"
-          value={fmtBytes(scalar(v, 'clink_disagg_hot_resident_bytes'))}
+          label="Object-cache hits"
+          value={n(familyTotal(v, 'clink_disagg_object_cache_hits_total'))}
         />
-        <Stat label="Object-cache hits" value={n(familyTotal(v, 'clink_disagg_object_cache_hits_total'))} />
         <Stat
           label="Object-cache misses"
           value={n(familyTotal(v, 'clink_disagg_object_cache_misses_total'))}
         />
-        <Stat label="CAS uploaded" value={n(familyTotal(v, 'clink_disagg_cas_objects_uploaded_total'))} />
+        <Stat
+          label="CAS uploaded"
+          value={n(familyTotal(v, 'clink_disagg_cas_objects_uploaded_total'))}
+        />
         <Stat
           label="CAS downloaded"
           value={n(familyTotal(v, 'clink_disagg_cas_objects_downloaded_total'))}
@@ -195,10 +211,30 @@ function Connectors({ v }: { v: MetricsView }) {
 
 function SqlPipeline({ v }: { v: MetricsView }) {
   const stages: { label: string; total: string; err: string; base: string }[] = [
-    { label: 'Parse', total: 'clink_sql_parses_total', err: 'clink_sql_parse_errors_total', base: 'clink_sql_parse_duration_ns' },
-    { label: 'Bind', total: 'clink_sql_binds_total', err: 'clink_sql_bind_errors_total', base: 'clink_sql_bind_duration_ns' },
-    { label: 'Optimise', total: 'clink_sql_optimizes_total', err: 'clink_sql_optimize_errors_total', base: 'clink_sql_optimize_duration_ns' },
-    { label: 'Physical', total: 'clink_sql_physical_plans_total', err: '', base: 'clink_sql_physical_plan_duration_ns' },
+    {
+      label: 'Parse',
+      total: 'clink_sql_parses_total',
+      err: 'clink_sql_parse_errors_total',
+      base: 'clink_sql_parse_duration_ns',
+    },
+    {
+      label: 'Bind',
+      total: 'clink_sql_binds_total',
+      err: 'clink_sql_bind_errors_total',
+      base: 'clink_sql_bind_duration_ns',
+    },
+    {
+      label: 'Optimise',
+      total: 'clink_sql_optimizes_total',
+      err: 'clink_sql_optimize_errors_total',
+      base: 'clink_sql_optimize_duration_ns',
+    },
+    {
+      label: 'Physical',
+      total: 'clink_sql_physical_plans_total',
+      err: '',
+      base: 'clink_sql_physical_plan_duration_ns',
+    },
   ]
   return (
     <Section title="SQL pipeline">
@@ -217,7 +253,9 @@ function SqlPipeline({ v }: { v: MetricsView }) {
             return (
               <TableRow key={s.label}>
                 <TableCell>{s.label}</TableCell>
-                <TableCell className="text-right tabular-nums">{n(familyTotal(v, s.total))}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {n(familyTotal(v, s.total))}
+                </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {s.err ? n(familyTotal(v, s.err)) : '-'}
                 </TableCell>
@@ -238,16 +276,37 @@ function Resilience({ v }: { v: MetricsView }) {
   return (
     <Section title="Resilience">
       <div className={grid}>
-        <Stat label="Breaker trips" value={n(familyTotal(v, 'clink_circuit_breaker_trips_total'))} tone="text-warn" />
-        <Stat label="Calls allowed" value={n(familyTotal(v, 'clink_circuit_breaker_calls_allowed_total'))} />
-        <Stat label="Calls rejected" value={n(familyTotal(v, 'clink_circuit_breaker_calls_rejected_total'))} tone="text-danger" />
+        <Stat
+          label="Breaker trips"
+          value={n(familyTotal(v, 'clink_circuit_breaker_trips_total'))}
+          tone="text-warn"
+        />
+        <Stat
+          label="Calls allowed"
+          value={n(familyTotal(v, 'clink_circuit_breaker_calls_allowed_total'))}
+        />
+        <Stat
+          label="Calls rejected"
+          value={n(familyTotal(v, 'clink_circuit_breaker_calls_rejected_total'))}
+          tone="text-danger"
+        />
         <Stat label="Retry attempts" value={n(familyTotal(v, 'clink_retry_attempts_total'))} />
-        <Stat label="Retry give-ups" value={n(familyTotal(v, 'clink_retry_giveup_total'))} tone="text-danger" />
-        <Stat label="io_uring completions" value={n(familyTotal(v, 'clink_io_uring_completions_total'))} />
+        <Stat
+          label="Retry give-ups"
+          value={n(familyTotal(v, 'clink_retry_giveup_total'))}
+          tone="text-danger"
+        />
+        <Stat
+          label="io_uring completions"
+          value={n(familyTotal(v, 'clink_io_uring_completions_total'))}
+        />
         <Stat label="io_uring mean" value={ms(ioAvg != null ? ioAvg / 1e6 : undefined)} />
         <Stat label="HTTP pool in use" value={n(scalar(v, 'clink_http_pool_connections'))} />
         <Stat label="HTTP pool idle" value={n(scalar(v, 'clink_http_pool_idle_connections'))} />
-        <Stat label="Pool acquire blocks" value={n(familyTotal(v, 'clink_http_pool_acquire_blocks_total'))} />
+        <Stat
+          label="Pool acquire blocks"
+          value={n(familyTotal(v, 'clink_http_pool_acquire_blocks_total'))}
+        />
       </div>
     </Section>
   )
@@ -261,15 +320,40 @@ function Orchestration({ v }: { v: MetricsView }) {
     <Section title="Cluster orchestration">
       <div className={grid}>
         <Stat label="Jobs running" value={n(scalar(v, 'clink_coordinator_jobs_running'))} />
-        <Stat label="Jobs completed" value={n(familyTotal(v, 'clink_coordinator_jobs_completed_total'))} tone="text-ok" />
-        <Stat label="Jobs failed" value={n(familyTotal(v, 'clink_coordinator_jobs_failed_total'))} tone="text-danger" />
-        <Stat label="workers registered" value={n(scalar(v, 'clink_coordinator_workers_registered'))} />
-        <Stat label="workers lost" value={n(familyTotal(v, 'clink_coordinator_workers_lost_total'))} tone="text-warn" />
-        <Stat label="Rescale cutovers" value={n(familyTotal(v, 'clink_rescale_cutover_deploys_total'))} />
-        <Stat label="Rescale aborts" value={n(familyTotal(v, 'clink_rescale_aborts_total'))} tone="text-warn" />
+        <Stat
+          label="Jobs completed"
+          value={n(familyTotal(v, 'clink_coordinator_jobs_completed_total'))}
+          tone="text-ok"
+        />
+        <Stat
+          label="Jobs failed"
+          value={n(familyTotal(v, 'clink_coordinator_jobs_failed_total'))}
+          tone="text-danger"
+        />
+        <Stat
+          label="workers registered"
+          value={n(scalar(v, 'clink_coordinator_workers_registered'))}
+        />
+        <Stat
+          label="workers lost"
+          value={n(familyTotal(v, 'clink_coordinator_workers_lost_total'))}
+          tone="text-warn"
+        />
+        <Stat
+          label="Rescale cutovers"
+          value={n(familyTotal(v, 'clink_rescale_cutover_deploys_total'))}
+        />
+        <Stat
+          label="Rescale aborts"
+          value={n(familyTotal(v, 'clink_rescale_aborts_total'))}
+          tone="text-warn"
+        />
         <Stat label="Autoscaler ticks" value={n(familyTotal(v, 'clink_autoscaler_ticks_total'))} />
         <Stat label="HA takeovers" value={n(familyTotal(v, 'clink_ha_leader_takeovers_total'))} />
-        <Stat label="HA recovered jobs" value={n(familyTotal(v, 'clink_ha_recovered_jobs_total'))} />
+        <Stat
+          label="HA recovered jobs"
+          value={n(familyTotal(v, 'clink_ha_recovered_jobs_total'))}
+        />
       </div>
       {decisions.length > 0 && (
         <div className="mt-3">
@@ -297,8 +381,14 @@ function ProcessSystem({ v }: { v: MetricsView }) {
   return (
     <Section title="Process &amp; system">
       <div className={grid}>
-        <Stat label="Resident memory" value={fmtBytes(scalar(v, 'clink_process_resident_memory_bytes'))} />
-        <Stat label="Virtual memory" value={fmtBytes(scalar(v, 'clink_process_virtual_memory_bytes'))} />
+        <Stat
+          label="Resident memory"
+          value={fmtBytes(scalar(v, 'clink_process_resident_memory_bytes'))}
+        />
+        <Stat
+          label="Virtual memory"
+          value={fmtBytes(scalar(v, 'clink_process_virtual_memory_bytes'))}
+        />
         <Stat label="CPU" value={`${(scalar(v, 'clink_process_cpu_percent') ?? 0).toFixed(0)}%`} />
         <Stat label="Open FDs" value={n(scalar(v, 'clink_process_open_fds'))} />
         <Stat label="Threads" value={n(scalar(v, 'clink_process_threads'))} />
@@ -318,7 +408,10 @@ function ProcessSystem({ v }: { v: MetricsView }) {
                 </div>
                 <div className="h-2 overflow-hidden rounded bg-muted">
                   <div
-                    className={cn('h-full', usedPct > 90 ? 'bg-danger' : usedPct > 75 ? 'bg-warn' : 'bg-primary')}
+                    className={cn(
+                      'h-full',
+                      usedPct > 90 ? 'bg-danger' : usedPct > 75 ? 'bg-warn' : 'bg-primary',
+                    )}
                     style={{ width: `${Math.min(100, usedPct)}%` }}
                   />
                 </div>
@@ -352,7 +445,12 @@ export function MetricsDashboards() {
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Jobs running" value={n(scalar(v, 'clink_coordinator_jobs_running'))} icon={Activity} tone="info" />
+        <StatCard
+          label="Jobs running"
+          value={n(scalar(v, 'clink_coordinator_jobs_running'))}
+          icon={Activity}
+          tone="info"
+        />
         <StatCard
           label="Slots in use"
           value={`${n(scalar(v, 'clink_coordinator_slots_in_use'))} / ${n(scalar(v, 'clink_coordinator_slots_capacity'))}`}

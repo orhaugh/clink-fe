@@ -37,6 +37,13 @@ export function LogViewer({
 }: LogViewerProps) {
   const endRef = useRef<HTMLDivElement>(null)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
+  const toggle = (i: number) =>
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(i)) next.delete(i)
+      else next.add(i)
+      return next
+    })
 
   useEffect(() => {
     if (follow) endRef.current?.scrollIntoView({ block: 'end' })
@@ -51,29 +58,53 @@ export function LogViewer({
   }
 
   return (
-    <div className={cn('overflow-auto rounded-lg border bg-card font-mono text-xs leading-relaxed', heightClass, className)}>
+    <div
+      className={cn(
+        'overflow-auto rounded-lg border bg-card font-mono text-xs leading-relaxed',
+        heightClass,
+        className,
+      )}
+    >
       {records.map((r, i) => {
         const multiline = r.message.includes('\n') || r.message.length > 160
         const isOpen = expanded.has(i)
         return (
           <div
             key={`${r.ts_ms}-${i}`}
-            className={cn('flex gap-3 border-l-2 px-3 py-1 hover:bg-muted/40', rowAccent[r.level] ?? 'border-l-transparent')}
+            className={cn(
+              'flex gap-3 border-l-2 px-3 py-1 hover:bg-muted/40',
+              rowAccent[r.level] ?? 'border-l-transparent',
+            )}
           >
-            <span className="shrink-0 tabular-nums text-muted-foreground/80">{fmtTime(r.ts_ms)}</span>
-            <span className={cn('w-12 shrink-0 uppercase', levelClass[r.level] ?? 'text-foreground')}>{r.level}</span>
-            {showSource && <span className="w-40 shrink-0 truncate text-primary/90">{r.source}</span>}
+            <span className="shrink-0 tabular-nums text-muted-foreground/80">
+              {fmtTime(r.ts_ms)}
+            </span>
             <span
-              className={cn('min-w-0 flex-1 whitespace-pre-wrap break-words', multiline && !isOpen && 'line-clamp-1 cursor-pointer')}
-              onClick={() => {
-                if (!multiline) return
-                setExpanded((prev) => {
-                  const next = new Set(prev)
-                  if (next.has(i)) next.delete(i)
-                  else next.add(i)
-                  return next
-                })
-              }}
+              className={cn('w-12 shrink-0 uppercase', levelClass[r.level] ?? 'text-foreground')}
+            >
+              {r.level}
+            </span>
+            {showSource && (
+              <span className="w-40 shrink-0 truncate text-primary/90">{r.source}</span>
+            )}
+            <span
+              className={cn(
+                'min-w-0 flex-1 whitespace-pre-wrap break-words',
+                multiline && !isOpen && 'line-clamp-1 cursor-pointer',
+              )}
+              role={multiline ? 'button' : undefined}
+              tabIndex={multiline ? 0 : undefined}
+              onClick={multiline ? () => toggle(i) : undefined}
+              onKeyDown={
+                multiline
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        toggle(i)
+                      }
+                    }
+                  : undefined
+              }
               title={multiline ? (isOpen ? 'Click to collapse' : 'Click to expand') : undefined}
             >
               {r.message}

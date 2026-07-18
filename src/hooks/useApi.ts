@@ -31,19 +31,38 @@ export const qk = {
 }
 
 export const useHealth = () =>
-  useQuery({ queryKey: qk.health, queryFn: ({ signal }) => api.health(signal), refetchInterval: TOPOLOGY })
+  useQuery({
+    queryKey: qk.health,
+    queryFn: ({ signal }) => api.health(signal),
+    refetchInterval: TOPOLOGY,
+  })
 
 export const useCluster = () =>
-  useQuery({ queryKey: qk.cluster, queryFn: ({ signal }) => api.cluster(signal), refetchInterval: TOPOLOGY })
+  useQuery({
+    queryKey: qk.cluster,
+    queryFn: ({ signal }) => api.cluster(signal),
+    refetchInterval: TOPOLOGY,
+  })
 
 export const useCoordinatorConfig = () =>
-  useQuery({ queryKey: qk.coordinatorConfig, queryFn: ({ signal }) => api.coordinatorConfig(signal) })
+  useQuery({
+    queryKey: qk.coordinatorConfig,
+    queryFn: ({ signal }) => api.coordinatorConfig(signal),
+  })
 
 export const useJobs = () =>
-  useQuery({ queryKey: qk.jobs, queryFn: ({ signal }) => api.jobs(signal), refetchInterval: TOPOLOGY })
+  useQuery({
+    queryKey: qk.jobs,
+    queryFn: ({ signal }) => api.jobs(signal),
+    refetchInterval: TOPOLOGY,
+  })
 
 export const useJob = (id: number) =>
-  useQuery({ queryKey: qk.job(id), queryFn: ({ signal }) => api.job(id, signal), refetchInterval: DETAIL })
+  useQuery({
+    queryKey: qk.job(id),
+    queryFn: ({ signal }) => api.job(id, signal),
+    refetchInterval: DETAIL,
+  })
 
 export const useJobGraph = (id: number) =>
   useQuery({
@@ -65,10 +84,18 @@ export const useJobOperators = (id: number, enabled = true) =>
   })
 
 export const useWorkers = () =>
-  useQuery({ queryKey: qk.workers, queryFn: ({ signal }) => api.workers(signal), refetchInterval: TOPOLOGY })
+  useQuery({
+    queryKey: qk.workers,
+    queryFn: ({ signal }) => api.workers(signal),
+    refetchInterval: TOPOLOGY,
+  })
 
 export const useWorker = (id: string) =>
-  useQuery({ queryKey: qk.worker(id), queryFn: ({ signal }) => api.worker(id, signal), refetchInterval: DETAIL })
+  useQuery({
+    queryKey: qk.worker(id),
+    queryFn: ({ signal }) => api.worker(id, signal),
+    refetchInterval: DETAIL,
+  })
 
 export const useWorkerSubtasks = (id: string) =>
   useQuery({
@@ -89,10 +116,19 @@ export const useWorkerMetricsText = (id: string, enabled = true) =>
   })
 
 export const useMetricsText = (enabled = true) =>
-  useQuery({ queryKey: qk.metrics, queryFn: ({ signal }) => api.metrics(signal), refetchInterval: METRICS, enabled })
+  useQuery({
+    queryKey: qk.metrics,
+    queryFn: ({ signal }) => api.metrics(signal),
+    refetchInterval: METRICS,
+    enabled,
+  })
 
 export const useLogComponents = () =>
-  useQuery({ queryKey: qk.logComponents, queryFn: ({ signal }) => api.logComponents(signal), refetchInterval: 15000 })
+  useQuery({
+    queryKey: qk.logComponents,
+    queryFn: ({ signal }) => api.logComponents(signal),
+    refetchInterval: 15000,
+  })
 
 export const useLogs = (q: LogQuery, refetchInterval: number | false = 3000) =>
   useQuery({ queryKey: qk.logs(q), queryFn: ({ signal }) => api.logs(q, signal), refetchInterval })
@@ -117,15 +153,21 @@ export function useCancelJob() {
 
 export function useSavepointJob() {
   return useMutation({
-    mutationFn: ({ id, timeoutMs }: { id: number; timeoutMs?: number }) => api.savepointJob(id, timeoutMs),
+    mutationFn: ({ id, timeoutMs }: { id: number; timeoutMs?: number }) =>
+      api.savepointJob(id, timeoutMs),
   })
 }
 
 export function useRescaleJob() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, roleParallelism }: { id: number; roleParallelism: Record<string, number> }) =>
-      api.rescaleJob(id, roleParallelism),
+    mutationFn: ({
+      id,
+      roleParallelism,
+    }: {
+      id: number
+      roleParallelism: Record<string, number>
+    }) => api.rescaleJob(id, roleParallelism),
     onSuccess: (_ack, { id }) => {
       void qc.invalidateQueries({ queryKey: qk.job(id) })
       void qc.invalidateQueries({ queryKey: qk.jobs })

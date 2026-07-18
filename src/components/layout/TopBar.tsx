@@ -37,7 +37,9 @@ export function TopBar() {
           </span>
         </div>
         {health.data && (
-          <span className="text-xs text-muted-foreground">up {fmtUptime(health.data.uptime_s)}</span>
+          <span className="text-xs text-muted-foreground">
+            up {fmtUptime(health.data.uptime_s)}
+          </span>
         )}
       </div>
 
@@ -57,7 +59,9 @@ export function TopBar() {
           label={health.isError ? 'coordinator unreachable' : 'coordinator healthy'}
         />
         <span className="inline-flex items-center gap-1.5">
-          <Radio className={cn('h-3.5 w-3.5', state === 'open' ? 'text-ok' : 'text-muted-foreground')} />
+          <Radio
+            className={cn('h-3.5 w-3.5', state === 'open' ? 'text-ok' : 'text-muted-foreground')}
+          />
           <span className="text-xs text-muted-foreground">
             {state === 'open' ? 'live' : state === 'connecting' ? 'connecting' : 'offline'}
           </span>

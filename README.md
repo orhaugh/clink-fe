@@ -1,5 +1,8 @@
 # clink console (clink-fe)
 
+[![ci](https://github.com/orhaugh/clink-fe/actions/workflows/ci.yml/badge.svg)](https://github.com/orhaugh/clink-fe/actions/workflows/ci.yml)
+[![licence](https://img.shields.io/badge/licence-Apache--2.0-blue.svg)](LICENSE)
+
 A modern operations console for clink clusters: Coordinator and Worker
 visibility, job submission, cluster-wide logs, live metrics, and job
 failure/error inspection.

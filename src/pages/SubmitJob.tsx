@@ -70,8 +70,9 @@ export function SubmitJob() {
             <CardHeader>
               <CardTitle>Upload a compiled job</CardTitle>
               <CardDescription>
-                A clink job compiled to a shared object (built with CLINK_REGISTER_JOB). The Coordinator loads it, runs
-                its registration, builds the graph and schedules it. Equivalent to clink_submit_job.
+                A clink job compiled to a shared object (built with CLINK_REGISTER_JOB). The
+                Coordinator loads it, runs its registration, builds the graph and schedules it.
+                Equivalent to clink_submit_job.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -83,9 +84,17 @@ export function SubmitJob() {
                 >
                   <FileUp className="h-6 w-6 text-muted-foreground" />
                   <span className="text-sm">
-                    {file ? <span className="font-mono text-foreground">{file.name}</span> : 'Choose a .so file or drop it here'}
+                    {file ? (
+                      <span className="font-mono text-foreground">{file.name}</span>
+                    ) : (
+                      'Choose a .so file or drop it here'
+                    )}
                   </span>
-                  {file && <span className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(0)} KiB</span>}
+                  {file && (
+                    <span className="text-xs text-muted-foreground">
+                      {(file.size / 1024).toFixed(0)} KiB
+                    </span>
+                  )}
                 </label>
                 <input
                   id="job-so"
@@ -117,8 +126,8 @@ export function SubmitJob() {
             <CardHeader>
               <CardTitle>Post a JSON job spec</CardTitle>
               <CardDescription>
-                A JobGraphSpec referencing built-in operator factories only (no plugin .so). This is the path
-                clink_submit_sql uses.
+                A JobGraphSpec referencing built-in operator factories only (no plugin .so). This is
+                the path clink_submit_sql uses.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -141,7 +150,9 @@ export function SubmitJob() {
                   placeholder='{ "operators": [ ... ], "edges": [ ... ] }'
                   className="h-72 w-full resize-y rounded-md border border-input bg-transparent p-3 font-mono text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
-                {spec.trim() && !specValid && <p className="text-xs text-danger">Not valid JSON yet.</p>}
+                {spec.trim() && !specValid && (
+                  <p className="text-xs text-danger">Not valid JSON yet.</p>
+                )}
               </div>
               <Button onClick={onSubmitSpec} disabled={!specValid || submitSpec.isPending}>
                 <Send className="h-4 w-4" />

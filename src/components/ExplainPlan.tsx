@@ -80,7 +80,9 @@ function PlanTree({ nodes }: { nodes: PlanNode[] }) {
                 {n.kind}
               </Badge>
               {n.schema && (
-                <span className="min-w-0 truncate font-mono text-xs text-muted-foreground">{n.schema}</span>
+                <span className="min-w-0 truncate font-mono text-xs text-muted-foreground">
+                  {n.schema}
+                </span>
               )}
             </div>
           </div>
@@ -100,7 +102,9 @@ export function ExplainPlan({ plans }: { plans: SqlPlanEntry[] }) {
       {plans.map((p, i) => (
         <div key={i} className="space-y-2">
           {multiple && (
-            <div className={cn('text-xs font-medium uppercase tracking-wide text-muted-foreground')}>
+            <div
+              className={cn('text-xs font-medium uppercase tracking-wide text-muted-foreground')}
+            >
               {p.kind}
             </div>
           )}

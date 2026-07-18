@@ -1,11 +1,24 @@
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { useWorker, useWorkerConfig, useWorkerLogs, useWorkerMetricsText, useWorkerSubtasks } from '@/hooks/useApi'
+import {
+  useWorker,
+  useWorkerConfig,
+  useWorkerLogs,
+  useWorkerMetricsText,
+  useWorkerSubtasks,
+} from '@/hooks/useApi'
 import { PageHeader } from '@/components/PageHeader'
 import { StatCard } from '@/components/StatCard'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { ErrorState, LoadingState, EmptyState } from '@/components/States'
 import { SubtaskStatusBadge } from '@/components/StatusBadge'
 import { LogViewer } from '@/components/LogViewer'
@@ -41,12 +54,22 @@ export function WorkerDetail() {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <StatCard label="Slots" value={`${worker.data.slots_in_use}/${worker.data.slot_capacity}`} />
+            <StatCard
+              label="Slots"
+              value={`${worker.data.slots_in_use}/${worker.data.slot_capacity}`}
+            />
             <StatCard label="Active subtasks" value={worker.data.active_subtasks} tone="info" />
-            <StatCard label="Data host" value={<span className="font-mono text-base">{worker.data.data_host}</span>} />
+            <StatCard
+              label="Data host"
+              value={<span className="font-mono text-base">{worker.data.data_host}</span>}
+            />
             <StatCard
               label="Coordinator"
-              value={<span className="font-mono text-base">{worker.data.coordinator_host}:{worker.data.coordinator_port}</span>}
+              value={
+                <span className="font-mono text-base">
+                  {worker.data.coordinator_host}:{worker.data.coordinator_port}
+                </span>
+              }
             />
           </div>
 
@@ -81,7 +104,10 @@ export function WorkerDetail() {
                         {subtasks.data.map((s, i) => (
                           <TableRow key={i}>
                             <TableCell>
-                              <Link to={`/jobs/${s.job_id}`} className="font-mono text-primary hover:underline">
+                              <Link
+                                to={`/jobs/${s.job_id}`}
+                                className="font-mono text-primary hover:underline"
+                              >
                                 #{s.job_id}
                               </Link>
                             </TableCell>
@@ -107,7 +133,10 @@ export function WorkerDetail() {
                   ) : config.data ? (
                     <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                       <Field label="Slot count" value={config.data.slot_count} />
-                      <Field label="Heartbeat interval" value={fmtMs(config.data.heartbeat_interval_ms)} />
+                      <Field
+                        label="Heartbeat interval"
+                        value={fmtMs(config.data.heartbeat_interval_ms)}
+                      />
                     </dl>
                   ) : (
                     <LoadingState />
@@ -117,14 +146,23 @@ export function WorkerDetail() {
             </TabsContent>
 
             <TabsContent value="metrics">
-              <MetricsPanel text={metrics.data} isLoading={metrics.isLoading} isError={metrics.isError} error={metrics.error} />
+              <MetricsPanel
+                text={metrics.data}
+                isLoading={metrics.isLoading}
+                isError={metrics.isError}
+                error={metrics.error}
+              />
             </TabsContent>
 
             <TabsContent value="logs">
               {logs.isError ? (
                 <ErrorState error={logs.error} />
               ) : (
-                <LogViewer records={logs.data ?? []} heightClass="h-[60vh]" emptyLabel="No logs from this Worker" />
+                <LogViewer
+                  records={logs.data ?? []}
+                  heightClass="h-[60vh]"
+                  emptyLabel="No logs from this Worker"
+                />
               )}
             </TabsContent>
           </Tabs>

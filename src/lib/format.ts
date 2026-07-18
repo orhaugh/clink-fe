@@ -20,7 +20,11 @@ export function fmtMs(ms: number): string {
 
 export function fmtTime(tsMs: number): string {
   const d = new Date(tsMs)
-  return d.toLocaleTimeString(undefined, { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0')
+  return (
+    d.toLocaleTimeString(undefined, { hour12: false }) +
+    '.' +
+    String(d.getMilliseconds()).padStart(3, '0')
+  )
 }
 
 export function fmtDateTime(tsMs: number): string {

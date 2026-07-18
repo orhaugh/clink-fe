@@ -10,7 +10,14 @@ describe('deriveJobState', () => {
 
   it('failed wins over everything when error_count > 0', () => {
     expect(deriveJobState({ ...base, error_count: 1 })).toBe('failed')
-    expect(deriveJobState({ ...base, cancel_requested: true, completion_signalled: true, error_count: 2 })).toBe('failed')
+    expect(
+      deriveJobState({
+        ...base,
+        cancel_requested: true,
+        completion_signalled: true,
+        error_count: 2,
+      }),
+    ).toBe('failed')
   })
 
   it('falls back to errors[] length when error_count is absent', () => {
@@ -23,7 +30,9 @@ describe('deriveJobState', () => {
   })
 
   it('cancelled outranks completed', () => {
-    expect(deriveJobState({ ...base, cancel_requested: true, completion_signalled: true })).toBe('cancelled')
+    expect(deriveJobState({ ...base, cancel_requested: true, completion_signalled: true })).toBe(
+      'cancelled',
+    )
   })
 
   it('completed when signalled and not cancelled/failed', () => {

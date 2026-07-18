@@ -4,7 +4,14 @@ import { useConnectors } from '@/hooks/useApi'
 import { PageHeader } from '@/components/PageHeader'
 import { StatCard } from '@/components/StatCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { ErrorState, LoadingState, EmptyState } from '@/components/States'
@@ -98,7 +105,9 @@ export function Connectors() {
 
     return [...known, ...extra].map((category) => ({
       category,
-      connectors: (byCategory.get(category) ?? []).slice().sort((a, b) => a.name.localeCompare(b.name)),
+      connectors: (byCategory.get(category) ?? [])
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name)),
     }))
   }, [connectors.data, q])
 
@@ -135,7 +144,11 @@ export function Connectors() {
           {total > 0 && (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <StatCard label="Connectors" value={total} icon={Plug} />
-              <StatCard label="Categories" value={connectorCategoryTotal(connectors.data)} icon={Boxes} />
+              <StatCard
+                label="Categories"
+                value={connectorCategoryTotal(connectors.data)}
+                icon={Boxes}
+              />
               <StatCard
                 label="Sources"
                 value={connectors.data.filter((c) => c.source).length}
@@ -171,7 +184,10 @@ export function Connectors() {
           ) : grouped.length === 0 ? (
             <Card>
               <CardContent className="px-0 py-0">
-                <EmptyState label={`No connectors match "${query}"`} hint="Clear the filter to see all of them." />
+                <EmptyState
+                  label={`No connectors match "${query}"`}
+                  hint="Clear the filter to see all of them."
+                />
               </CardContent>
             </Card>
           ) : (
@@ -198,7 +214,9 @@ export function Connectors() {
                             <TableCell>
                               <CapabilityBadges source={c.source} sink={c.sink} />
                             </TableCell>
-                            <TableCell className="text-muted-foreground">{DESCRIPTIONS[c.name] ?? ''}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {DESCRIPTIONS[c.name] ?? ''}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

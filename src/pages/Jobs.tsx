@@ -4,7 +4,14 @@ import { useJobs } from '@/hooks/useApi'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { ErrorState, LoadingState, EmptyState } from '@/components/States'
 import { JobStateBadge } from '@/components/StatusBadge'
 import { deriveJobState } from '@/lib/types'
@@ -35,7 +42,10 @@ export function Jobs() {
           ) : jobs.isLoading || !jobs.data ? (
             <LoadingState />
           ) : sorted.length === 0 ? (
-            <EmptyState label="No jobs submitted" hint="Upload a compiled job .so or post a JSON spec from Submit." />
+            <EmptyState
+              label="No jobs submitted"
+              hint="Upload a compiled job .so or post a JSON spec from Submit."
+            />
           ) : (
             <Table>
               <TableHeader>
@@ -49,11 +59,15 @@ export function Jobs() {
               </TableHeader>
               <TableBody>
                 {sorted.map((j) => {
-                  const progress = j.expected_completion > 0 ? pct(j.completed_count, j.expected_completion) : 0
+                  const progress =
+                    j.expected_completion > 0 ? pct(j.completed_count, j.expected_completion) : 0
                   return (
                     <TableRow key={j.id}>
                       <TableCell>
-                        <Link to={`/jobs/${j.id}`} className="font-mono text-primary hover:underline">
+                        <Link
+                          to={`/jobs/${j.id}`}
+                          className="font-mono text-primary hover:underline"
+                        >
                           #{j.id}
                         </Link>
                       </TableCell>
@@ -63,15 +77,24 @@ export function Jobs() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
-                            <div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
+                            <div
+                              className="h-full rounded-full bg-primary"
+                              style={{ width: `${progress}%` }}
+                            />
                           </div>
-                          <span className="text-xs tabular-nums text-muted-foreground">{progress}%</span>
+                          <span className="text-xs tabular-nums text-muted-foreground">
+                            {progress}%
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell className="tabular-nums text-muted-foreground">
                         {j.completed_count}/{j.expected_completion}
                       </TableCell>
-                      <TableCell className={j.error_count > 0 ? 'font-medium text-danger' : 'text-muted-foreground'}>
+                      <TableCell
+                        className={
+                          j.error_count > 0 ? 'font-medium text-danger' : 'text-muted-foreground'
+                        }
+                      >
                         {j.error_count}
                       </TableCell>
                     </TableRow>

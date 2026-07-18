@@ -18,7 +18,11 @@ describe('parsePrometheus', () => {
   })
 
   it('captures HELP and TYPE comment lines', () => {
-    const text = ['# HELP clink_jobs_running jobs currently running', '# TYPE clink_jobs_running gauge', 'clink_jobs_running 3'].join('\n')
+    const text = [
+      '# HELP clink_jobs_running jobs currently running',
+      '# TYPE clink_jobs_running gauge',
+      'clink_jobs_running 3',
+    ].join('\n')
     const [f] = parsePrometheus(text)
     expect(f.help).toBe('jobs currently running')
     expect(f.type).toBe('gauge')
@@ -32,11 +36,19 @@ describe('parsePrometheus', () => {
   })
 
   it('strips _sum/_count/_bucket suffixes for family grouping but keeps full sample names', () => {
-    const text = ['clink_lat_ms_sum 100', 'clink_lat_ms_count 4', 'clink_lat_ms_bucket{le="10"} 2'].join('\n')
+    const text = [
+      'clink_lat_ms_sum 100',
+      'clink_lat_ms_count 4',
+      'clink_lat_ms_bucket{le="10"} 2',
+    ].join('\n')
     const fams = parsePrometheus(text)
     expect(fams).toHaveLength(1)
     expect(fams[0].name).toBe('clink_lat_ms')
-    expect(fams[0].samples.map((s) => s.name).sort()).toEqual(['clink_lat_ms_bucket', 'clink_lat_ms_count', 'clink_lat_ms_sum'])
+    expect(fams[0].samples.map((s) => s.name).sort()).toEqual([
+      'clink_lat_ms_bucket',
+      'clink_lat_ms_count',
+      'clink_lat_ms_sum',
+    ])
   })
 
   it('ignores an optional trailing timestamp column', () => {

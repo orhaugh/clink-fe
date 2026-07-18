@@ -4,12 +4,27 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Operations console for clink clusters (coordinator, workers, jobs, logs, metrics).",
+  "license": "Apache-2.0",
+  "author": "Ross Haugh",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/orhaugh/clink-fe.git"
+  },
+  "homepage": "https://github.com/orhaugh/clink-fe#readme",
+  "bugs": {
+    "url": "https://github.com/orhaugh/clink-fe/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest",
     "test:run": "vitest run",
     "coverage": "vitest run --coverage"
@@ -50,11 +65,14 @@
     "@vitest/coverage-v8": "^2.1.9",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.39.5",
+    "eslint-config-prettier": "^9.1.2",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.26",
     "globals": "^15.15.0",
     "jsdom": "^25.0.1",
     "postcss": "^8.5.1",
+    "prettier": "^3.9.5",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.7.3",

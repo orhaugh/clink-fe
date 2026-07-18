@@ -23,7 +23,9 @@ export function StatCard({ label, value, sub, icon: Icon, tone = 'default' }: St
     <Card className="p-4">
       <div className="flex items-start justify-between">
         <div className="space-y-1">
-          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {label}
+          </div>
           <div className={cn('text-2xl font-semibold tabular-nums', toneText[tone])}>{value}</div>
           {sub != null && <div className="text-xs text-muted-foreground">{sub}</div>}
         </div>

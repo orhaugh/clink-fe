@@ -56,7 +56,9 @@ export function Metrics() {
     setHistory((prev) => [...prev, point].slice(-MAX_POINTS))
   }, [metrics.data, metrics.dataUpdatedAt])
 
-  const hasSeries = history.some((p) => p.completed != null || p.triggered != null || p.failed != null)
+  const hasSeries = history.some(
+    (p) => p.completed != null || p.triggered != null || p.failed != null,
+  )
   const hasResources = history.some((p) => p.cpu != null || p.rssMib != null)
 
   return (
@@ -130,7 +132,14 @@ export function Metrics() {
                     fontSize={11}
                   />
                   <YAxis yAxisId="cpu" stroke="#22d3ee" fontSize={11} width={44} unit="%" />
-                  <YAxis yAxisId="mem" orientation="right" stroke="#a78bfa" fontSize={11} width={56} unit="M" />
+                  <YAxis
+                    yAxisId="mem"
+                    orientation="right"
+                    stroke="#a78bfa"
+                    fontSize={11}
+                    width={56}
+                    unit="M"
+                  />
                   <RTooltip
                     contentStyle={{
                       background: 'hsl(222 26% 9%)',
@@ -141,8 +150,28 @@ export function Metrics() {
                     labelFormatter={(t) => fmtTime(Number(t))}
                   />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Line yAxisId="cpu" type="monotone" dataKey="cpu" name="CPU %" stroke="#22d3ee" strokeWidth={2} dot={false} isAnimationActive={false} connectNulls />
-                  <Line yAxisId="mem" type="monotone" dataKey="rssMib" name="RSS (MiB)" stroke="#a78bfa" strokeWidth={2} dot={false} isAnimationActive={false} connectNulls />
+                  <Line
+                    yAxisId="cpu"
+                    type="monotone"
+                    dataKey="cpu"
+                    name="CPU %"
+                    stroke="#22d3ee"
+                    strokeWidth={2}
+                    dot={false}
+                    isAnimationActive={false}
+                    connectNulls
+                  />
+                  <Line
+                    yAxisId="mem"
+                    type="monotone"
+                    dataKey="rssMib"
+                    name="RSS (MiB)"
+                    stroke="#a78bfa"
+                    strokeWidth={2}
+                    dot={false}
+                    isAnimationActive={false}
+                    connectNulls
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -150,7 +179,12 @@ export function Metrics() {
         </Card>
       )}
 
-      <MetricsPanel text={metrics.data} isLoading={metrics.isLoading} isError={metrics.isError} error={metrics.error} />
+      <MetricsPanel
+        text={metrics.data}
+        isLoading={metrics.isLoading}
+        isError={metrics.isError}
+        error={metrics.error}
+      />
     </div>
   )
 }
