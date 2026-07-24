@@ -2,11 +2,12 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'node:path'
 
-// The clink HTTP server sends no CORS headers, so the browser cannot call it
-// cross-origin. In dev we proxy /api and /metrics to a running JobManager's
-// HTTP listener. Point a JM at a fixed port and set VITE_CLINK_TARGET:
+// In dev we proxy /api and /metrics to a running Coordinator's HTTP listener,
+// so no CORS setup is needed (cross-origin deployments can instead use
+// clink_node --http-cors-origin=<origin>). Point a Coordinator at a fixed
+// port and set VITE_CLINK_TARGET:
 //
-//   clink_node --role=jm --port=7070 --http-port=8081
+//   clink_node --role=coordinator --port=7070 --http-port=8081
 //   VITE_CLINK_TARGET=http://127.0.0.1:8081 npm run dev
 //
 // SSE (/api/v1/events) is proxied too; http-proxy streams it without buffering.

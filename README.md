@@ -235,9 +235,9 @@ and sink for the `file` connector, e.g.
 ## API source of truth
 
 See `docs/clink-api.md` for the exact endpoint and JSON-shape reference the
-typed client in `src/lib/` is built against, including the known gaps (no
-per-subtask stack traces, savepoint/rescale are CLI-only, metrics are Prometheus
-text).
+typed client in `src/lib/` is built against. Savepoint, rescale, and structured
+subtask failures (with capture-site traces where the engine build supports
+them) are all served over HTTP; metrics remain Prometheus text.
 
 ## Build
 
