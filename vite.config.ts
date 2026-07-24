@@ -31,10 +31,17 @@ export default defineConfig(({ mode }) => {
         output: {
           // Split the heavy, rarely-changing vendors so the app chunk stays
           // small and the charting lib only loads when its routes are hit.
-          manualChunks: {
-            recharts: ['recharts'],
-            graph: ['@xyflow/react', '@dagrejs/dagre'],
-            vendor: ['react', 'react-dom', 'react-router-dom', '@tanstack/react-query'],
+          // Groups match in order, so recharts and the graph stack claim
+          // their modules before the general vendor group.
+          advancedChunks: {
+            groups: [
+              { name: 'recharts', test: /node_modules[\\/]recharts[\\/]/ },
+              { name: 'graph', test: /node_modules[\\/](@xyflow|@dagrejs)[\\/]/ },
+              {
+                name: 'vendor',
+                test: /node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler|@tanstack)[\\/]/,
+              },
+            ],
           },
         },
       },
