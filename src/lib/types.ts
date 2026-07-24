@@ -145,6 +145,60 @@ export interface JobOperators {
   operators: OperatorRuntime[]
 }
 
+// Data lineage (GET /api/v1/jobs/:id/lineage). A graph of the external
+// datasets the job reads and writes: vertices are source/sink connectors,
+// datasets identify the external entity (namespace = storage address, name =
+// topic/table/path), edges are coarse source -> sink reachability through the
+// DAG. Shaped after the OpenLineage data model.
+export interface LineageSchemaField {
+  name: string
+  type: string
+}
+
+export interface LineageColumnInput {
+  namespace: string
+  name: string
+  field: string
+}
+
+// Per-output-column lineage on sink datasets (SQL jobs only).
+// transformation: 'IDENTITY' | 'TRANSFORMATION' | 'AGGREGATION'; empty inputs
+// means no traceable source (e.g. COUNT(*)).
+export interface LineageColumnField {
+  output: string
+  transformation?: string
+  inputs: LineageColumnInput[]
+}
+
+export interface LineageDataset {
+  namespace: string
+  name: string
+  facets: Record<string, string>
+  schema?: LineageSchemaField[]
+  column_lineage?: LineageColumnField[]
+}
+
+export interface LineageVertex {
+  id: string
+  uid: string
+  name: string
+  op_type: string
+  boundedness?: 'bounded' | 'unbounded' | 'unknown' | string
+  datasets: LineageDataset[]
+}
+
+export interface LineageGraph {
+  sources: LineageVertex[]
+  sinks: LineageVertex[]
+  edges: Array<{ from: string; to: string }>
+}
+
+export interface JobLineage {
+  job_id: number
+  available: boolean
+  lineage: LineageGraph
+}
+
 export interface WorkerSnapshot {
   worker_id: string
   data_host: string

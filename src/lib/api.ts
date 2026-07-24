@@ -11,6 +11,7 @@ import type {
   CoordinatorConfig,
   JobDetail,
   JobGraphDetail,
+  JobLineage,
   JobOperators,
   JobSummary,
   LogRecord,
@@ -85,6 +86,7 @@ export const api = {
   jobGraph: (id: number, s?: AbortSignal) => getJson<JobGraphDetail>(`/api/v1/jobs/${id}/graph`, s),
   jobOperators: (id: number, s?: AbortSignal) =>
     getJson<JobOperators>(`/api/v1/jobs/${id}/operators`, s),
+  jobLineage: (id: number, s?: AbortSignal) => getJson<JobLineage>(`/api/v1/jobs/${id}/lineage`, s),
   cancelJob: async (id: number): Promise<CancelAck> => {
     const res = await fetch(`/api/v1/jobs/${id}/cancel`, { method: 'POST' })
     return (await res.json()) as CancelAck

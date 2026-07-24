@@ -186,6 +186,9 @@ describe('remaining GET routes', () => {
         '/api/v1/jobs/7': resp({ json: { id: 7 } }),
         '/api/v1/jobs/7/graph': resp({ json: { job_id: 7 } }),
         '/api/v1/jobs/7/operators': resp({ json: { job_id: 7, operators: [] } }),
+        '/api/v1/jobs/7/lineage': resp({
+          json: { job_id: 7, available: true, lineage: { sources: [], sinks: [], edges: [] } },
+        }),
         '/api/v1/workers/w/config': resp({ json: { slot_count: 4 } }),
         '/api/v1/workers/w/metrics': resp({ text: 'clink_up 1' }),
         '/api/v1/logs/components': resp({ json: { components: ['coordinator'] } }),
@@ -198,10 +201,11 @@ describe('remaining GET routes', () => {
     await expect(api.job(7)).resolves.toMatchObject({ id: 7 })
     await expect(api.jobGraph(7)).resolves.toMatchObject({ job_id: 7 })
     await expect(api.jobOperators(7)).resolves.toMatchObject({ operators: [] })
+    await expect(api.jobLineage(7)).resolves.toMatchObject({ available: true })
     await expect(api.workerConfig('w')).resolves.toMatchObject({ slot_count: 4 })
     await expect(api.workerMetrics('w')).resolves.toBe('clink_up 1')
     await expect(api.logComponents()).resolves.toEqual(['coordinator'])
-    expect(fn).toHaveBeenCalledTimes(7)
+    expect(fn).toHaveBeenCalledTimes(8)
   })
 
   it('submitJobSo posts multipart form data with the job name', async () => {

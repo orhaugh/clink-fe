@@ -17,6 +17,7 @@ export const qk = {
   job: (id: number) => ['job', id] as const,
   jobGraph: (id: number) => ['jobGraph', id] as const,
   jobOperators: (id: number) => ['jobOperators', id] as const,
+  jobLineage: (id: number) => ['jobLineage', id] as const,
   workers: ['workers'] as const,
   worker: (id: string) => ['worker', id] as const,
   workerSubtasks: (id: string) => ['workerSubtasks', id] as const,
@@ -81,6 +82,15 @@ export const useJobOperators = (id: number, enabled = true) =>
     queryFn: ({ signal }) => api.jobOperators(id, signal),
     refetchInterval: 2000,
     enabled,
+  })
+
+// Lineage is a pure function of the submitted spec, so it never changes over
+// a job's life: fetch once, no polling.
+export const useJobLineage = (id: number) =>
+  useQuery({
+    queryKey: qk.jobLineage(id),
+    queryFn: ({ signal }) => api.jobLineage(id, signal),
+    staleTime: Infinity,
   })
 
 export const useWorkers = () =>

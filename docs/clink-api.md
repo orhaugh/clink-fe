@@ -7,33 +7,40 @@ snapshot structs in `include/clink/cluster/snapshots.hpp`. Types here mirror
 
 All routes are relative; the Coordinator is the single origin. The coordinator proxies
 per-Worker routes under `/api/v1/workers/:id/*`, so the console only targets the
-coordinator. The HTTP server sends **no CORS headers**, so the browser must reach it
-same-origin (dev: the Vite proxy; prod: serve the SPA from the coordinator, or add CORS).
+coordinator. By default the server sends no CORS headers, so the browser must reach it
+same-origin (dev: the Vite proxy; prod: serve the SPA from the coordinator); for a
+cross-origin deployment start the node with `--http-cors-origin=<origin>`.
 
 ## Coordinator endpoints
 
-| Method | Path                           | Response                                                                                                                              |
-| ------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/v1/health`               | `{ role, ok, uptime_s, bound_port }`                                                                                                  |
-| GET    | `/api/v1/cluster`              | `ClusterSnapshot` (rollup + embedded `workers: WorkerSummary[]`)                                                                      |
-| GET    | `/api/v1/config`               | `{ bind_host, advertise_host, heartbeat_timeout_ms, watchdog_interval_ms, submit_wait_for_slots_ms, restart_drain_timeout_ms }`       |
-| GET    | `/api/v1/jobs`                 | `{ jobs: JobSummary[] }`                                                                                                              |
-| GET    | `/api/v1/jobs/:id`             | `JobDetail` (404 `{error}` if unknown)                                                                                                |
-| POST   | `/api/v1/jobs`                 | multipart: file part `job_so` (+ optional text `job_name`) → `{ ok, job_id, name }` or `{ error }`                                    |
-| POST   | `/api/v1/jobs/spec`            | JSON body (JobGraphSpec), `?name=` → `{ ok, job_id, name }`                                                                           |
-| POST   | `/api/v1/jobs/:id/cancel`      | `{ job_id, ok, message }` (404/409 on unknown/already-complete/in-progress)                                                           |
-| POST   | `/api/v1/jobs/:id/savepoint`   | `?timeout_ms=` → `{ job_id, ok, checkpoint_id, checkpoint_dir, message }` (404/409 on failure)                                        |
-| POST   | `/api/v1/jobs/:id/rescale`     | JSON body `{ "<role>": <parallelism>, ... }` (scale-up only) → `{ job_id, ok, message }`                                              |
-| GET    | `/api/v1/workers`              | `{ workers: WorkerSummary[] }`                                                                                                        |
-| GET    | `/api/v1/workers/:id/worker`   | `WorkerSnapshot` (proxied)                                                                                                            |
-| GET    | `/api/v1/workers/:id/subtasks` | `{ subtasks: SubtaskRecord[] }` (proxied)                                                                                             |
-| GET    | `/api/v1/workers/:id/config`   | `{ slot_count, heartbeat_interval_ms }` (proxied)                                                                                     |
-| GET    | `/api/v1/workers/:id/metrics`  | Prometheus text (proxied)                                                                                                             |
-| GET    | `/api/v1/workers/:id/logs`     | `{ logs: LogRecord[] }` (proxied)                                                                                                     |
-| GET    | `/api/v1/logs`                 | `{ logs: LogRecord[] }`; `?level&limit&since_ms&source`                                                                               |
-| GET    | `/api/v1/logs/components`      | `{ components: string[] }`                                                                                                            |
-| GET    | `/metrics`                     | Prometheus exposition text (incl. system gauges, below)                                                                               |
-| GET    | `/api/v1/events`               | SSE; event names `coordinator.worker_registered`, `coordinator.worker_lost`, `coordinator.job_submitted`, `coordinator.job_completed` |
+| Method | Path                           | Response                                                                                                                                     |
+| ------ | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/health`               | `{ role, ok, uptime_s, bound_port }`                                                                                                         |
+| GET    | `/api/v1/cluster`              | `ClusterSnapshot` (rollup + embedded `workers: WorkerSummary[]`)                                                                             |
+| GET    | `/api/v1/config`               | `{ bind_host, advertise_host, heartbeat_timeout_ms, watchdog_interval_ms, submit_wait_for_slots_ms, restart_drain_timeout_ms }`              |
+| GET    | `/api/v1/jobs`                 | `{ jobs: JobSummary[] }`                                                                                                                     |
+| GET    | `/api/v1/jobs/:id`             | `JobDetail` (404 `{error}` if unknown)                                                                                                       |
+| GET    | `/api/v1/jobs/:id/graph`       | `JobGraphDetail` (logical topology: `nodes`, `edges`, `available`, `topology_version`)                                                       |
+| GET    | `/api/v1/jobs/:id/operators`   | `{ job_id, available, operators: OperatorRuntime[] }` per-operator runtime stats, aggregated across workers                                  |
+| GET    | `/api/v1/jobs/:id/lineage`     | `{ job_id, available, lineage: { sources, sinks, edges } }` external-dataset lineage (404 if unknown)                                        |
+| POST   | `/api/v1/jobs`                 | multipart: file part `job_so` (+ optional text `job_name`) → `{ ok, job_id, name }` or `{ error }`                                           |
+| POST   | `/api/v1/jobs/spec`            | JSON body (JobGraphSpec), `?name=` → `{ ok, job_id, name }`                                                                                  |
+| POST   | `/api/v1/jobs/:id/cancel`      | `{ job_id, ok, message }` (404/409 on unknown/already-complete/in-progress)                                                                  |
+| POST   | `/api/v1/jobs/:id/savepoint`   | `?timeout_ms=` → `{ job_id, ok, checkpoint_id, checkpoint_dir, message }` (404/409 on failure)                                               |
+| POST   | `/api/v1/jobs/:id/rescale`     | JSON body `{ "<role>": <parallelism>, ... }` (scale-up only) → `{ job_id, ok, message }`                                                     |
+| POST   | `/api/v1/jobs/sql`             | raw SQL body; `?mode=explain\|compile\|submit&parallelism&name` → `SqlResult` (400 body `{ok:false,error,position}` is returned, not thrown) |
+| GET    | `/api/v1/catalog`              | `{ tables: CatalogTable[] }` session catalog (tables/views registered via SQL DDL)                                                           |
+| GET    | `/api/v1/connectors`           | `{ connectors: SqlConnector[] }` the `WITH(connector='...')` vocabulary of this build                                                        |
+| GET    | `/api/v1/workers`              | `{ workers: WorkerSummary[] }`                                                                                                               |
+| GET    | `/api/v1/workers/:id/worker`   | `WorkerSnapshot` (proxied)                                                                                                                   |
+| GET    | `/api/v1/workers/:id/subtasks` | `{ subtasks: SubtaskRecord[] }` (proxied)                                                                                                    |
+| GET    | `/api/v1/workers/:id/config`   | `{ slot_count, heartbeat_interval_ms }` (proxied)                                                                                            |
+| GET    | `/api/v1/workers/:id/metrics`  | Prometheus text (proxied)                                                                                                                    |
+| GET    | `/api/v1/workers/:id/logs`     | `{ logs: LogRecord[] }` (proxied)                                                                                                            |
+| GET    | `/api/v1/logs`                 | `{ logs: LogRecord[] }`; `?level&limit&since_ms&source`                                                                                      |
+| GET    | `/api/v1/logs/components`      | `{ components: string[] }`                                                                                                                   |
+| GET    | `/metrics`                     | Prometheus exposition text (incl. system gauges, below)                                                                                      |
+| GET    | `/api/v1/events`               | SSE; event names `coordinator.worker_registered`, `coordinator.worker_lost`, `coordinator.job_submitted`, `coordinator.job_completed`        |
 
 Proxy routes return 404 if the worker is unknown/lost/has no HTTP listener, 502 if
 unreachable.
@@ -62,6 +69,13 @@ WorkerSnapshot   { worker_id, data_host, slot_capacity, slots_in_use, coordinato
                active_subtasks }
 SubtaskRecord{ job_id, role, subtask_idx, status }   // status: "pending" | "ready"
 LogRecord    { ts_ms, level, source, message }       // level: debug|info|warn|error
+LineageGraph { sources: LineageVertex[], sinks: LineageVertex[],
+               edges: { from, to }[] }               // vertex ids
+LineageVertex{ id, uid, name, op_type, boundedness?, // boundedness on sources only
+               datasets: { namespace, name, facets: {k:v},
+                           schema?: { name, type }[],
+                           column_lineage?: { output, transformation?,
+                                              inputs: { namespace, name, field }[] }[] }[] }
 ```
 
 There is no single job-status enum on the wire; the console derives

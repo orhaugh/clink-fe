@@ -9,6 +9,7 @@ import {
   useRescaleJob,
   useSavepointJob,
 } from '@/hooks/useApi'
+import { LineagePanel } from '@/components/LineagePanel'
 import { OperatorDetail } from '@/components/OperatorDetail'
 import type { OperatorRuntime } from '@/lib/types'
 import type { OpRate } from '@/components/JobGraph'
@@ -100,6 +101,8 @@ export function JobDetail() {
       </div>
 
       <GraphSection jobId={j.id} />
+
+      <LineagePanel jobId={j.id} />
 
       <FailuresPanel job={j} />
 
