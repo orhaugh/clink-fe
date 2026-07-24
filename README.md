@@ -3,19 +3,26 @@
 [![ci](https://github.com/orhaugh/clink-fe/actions/workflows/ci.yml/badge.svg)](https://github.com/orhaugh/clink-fe/actions/workflows/ci.yml)
 [![licence](https://img.shields.io/badge/licence-Apache--2.0-blue.svg)](LICENSE)
 
-A modern operations console for clink clusters: Coordinator and Worker
-visibility, job submission, cluster-wide logs, live metrics, and job
-failure/error inspection.
+A modern operations console for [clink](https://github.com/orhaugh/clink)
+clusters: Coordinator and Worker visibility, job submission, live per-operator
+DAG overlays, a SQL workbench, data lineage, cluster-wide logs, metrics
+dashboards, and job failure inspection.
 
 Built with React + TypeScript + Vite + Tailwind + shadcn-style components, in a
 dark ops theme. It talks only to clink's existing HTTP API; there is no separate
 backend.
 
+**Requires a running clink cluster.** The console is a pure frontend for
+[clink's](https://github.com/orhaugh/clink) coordinator HTTP API (clink v0.1.0
+or later); nothing works without one. Build or download clink from its
+repository, then follow the steps below.
+
 ## Running
 
-clink's HTTP server sends no CORS headers, so the browser cannot call it
-cross-origin. In dev the Vite server proxies `/api` and `/metrics` to a running
-Coordinator.
+By default clink's HTTP server sends no CORS headers, so the browser must reach
+it same-origin. In dev the Vite server proxies `/api` and `/metrics` to a
+running Coordinator (cross-origin deployments can instead start the node with
+`--http-cors-origin=<origin>`).
 
 1. Start a Coordinator with a fixed HTTP port:
 
