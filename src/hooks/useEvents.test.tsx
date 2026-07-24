@@ -77,6 +77,14 @@ describe('useEvents', () => {
     expect(result.current.state).toBe('closed')
   })
 
+  it('stays connecting when an error fires while the stream is still retrying', () => {
+    const { result } = renderHook(() => useEvents(), { wrapper })
+    act(() => es().emit('open'))
+    expect(result.current.state).toBe('open')
+    act(() => es().emit('error')) // readyState still CONNECTING: browser is retrying
+    expect(result.current.state).toBe('connecting')
+  })
+
   it('accumulates events newest-first', () => {
     const { result } = renderHook(() => useEvents(), { wrapper })
     act(() => es().emit('coordinator.job_submitted', 'job 1'))

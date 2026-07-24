@@ -117,6 +117,16 @@ describe('error handling', () => {
     })
   })
 
+  it('falls back to status + statusText when the JSON error body has no error field', async () => {
+    mockFetch(() =>
+      resp({ ok: false, status: 500, statusText: 'Internal Server Error', json: { detail: 'x' } }),
+    )
+    await expect(api.cluster()).rejects.toMatchObject({
+      status: 500,
+      message: '500 Internal Server Error',
+    })
+  })
+
   it('falls back to status + statusText when the error body is not JSON', async () => {
     mockFetch(() =>
       resp({ ok: false, status: 503, statusText: 'Service Unavailable', jsonThrows: true }),
@@ -203,6 +213,19 @@ describe('remaining GET routes', () => {
     expect(req!.body).toBeInstanceOf(FormData)
     expect((req!.body as FormData).get('job_name')).toBe('demo')
   })
+
+  it('submitJobSo omits job_name when none is given', async () => {
+    const fn = mockFetch(() => resp({ json: { ok: true, job_id: 2 } }))
+    await api.submitJobSo(new File(['x'], 'job.so'))
+    const [, req] = fn.mock.calls[0]
+    expect((req!.body as FormData).get('job_name')).toBeNull()
+  })
+
+  it('submitSpec posts to the bare spec path when no name is given', async () => {
+    const fn = mockFetch(() => resp({ json: { ok: true, job_id: 3 } }))
+    await api.submitSpec('{}')
+    expect(fn.mock.calls[0][0]).toBe('/api/v1/jobs/spec')
+  })
 })
 
 describe('runSql (never throws)', () => {
@@ -236,6 +259,19 @@ describe('runSql (never throws)', () => {
     await expect(api.runSql('SELECT 1', 'explain')).resolves.toEqual({
       ok: false,
       error: 'network down',
+    })
+  })
+
+  it('reports "network error" when fetch rejects with a non-Error value', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw 'connection reset'
+      }),
+    )
+    await expect(api.runSql('SELECT 1', 'explain')).resolves.toEqual({
+      ok: false,
+      error: 'network error',
     })
   })
 

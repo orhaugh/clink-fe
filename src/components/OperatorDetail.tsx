@@ -16,9 +16,14 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 
 export function OperatorDetail({
   op,
+  asOfMs,
   onClose,
 }: {
   op: OperatorRuntime | null
+  // Timestamp of the poll that produced `op` (query dataUpdatedAt). Running
+  // subtask durations are measured against this rather than a render-time
+  // clock, so they are exactly as fresh as the data they describe.
+  asOfMs?: number
   onClose: () => void
 }) {
   const open = op != null
@@ -154,7 +159,8 @@ export function OperatorDetail({
                         {op.subtasks.map((s) => {
                           const started = s.started_at_unix_ms || 0
                           const finished = s.finished_at_unix_ms || 0
-                          const dur = started ? (finished || Date.now()) - started : 0
+                          const asOf = finished || asOfMs || 0
+                          const dur = started && asOf ? Math.max(0, asOf - started) : 0
                           return (
                             <tr
                               key={`${s.subtask_idx}-${s.worker_id}`}

@@ -29,7 +29,8 @@ export function useEvents() {
   useEffect(() => {
     const es = new EventSource(EVENTS_PATH)
     esRef.current = es
-    setState('connecting')
+    // No sync setState here: the initial useState('connecting') covers the
+    // fresh stream, and the effect only re-runs if the QueryClient changes.
 
     const onOpen = () => setState('open')
     const onError = () => setState(es.readyState === EventSource.CLOSED ? 'closed' : 'connecting')

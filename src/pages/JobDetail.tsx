@@ -319,6 +319,10 @@ function GraphSection({ jobId }: { jobId: number }) {
       nextPrev.set(o.node, { in: o.records_in, out: o.records_out, ts: now })
     }
     prevRef.current = nextPrev
+    // Rates are deltas between successive poll snapshots, so they can only be
+    // produced when a new snapshot lands - deriving in render cannot see the
+    // previous sample.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRates(next)
   }, [ops.data])
 
@@ -349,7 +353,11 @@ function GraphSection({ jobId }: { jobId: number }) {
                 onSelect={setSelected}
               />
             </Suspense>
-            <OperatorDetail op={selectedOp} onClose={() => setSelected(null)} />
+            <OperatorDetail
+              op={selectedOp}
+              asOfMs={ops.dataUpdatedAt}
+              onClose={() => setSelected(null)}
+            />
             <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
               <Legend swatch="bg-info" label="source" />
               <Legend swatch="bg-ok" label="sink" />
