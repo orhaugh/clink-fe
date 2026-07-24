@@ -10,6 +10,22 @@ updates:
       # One PR for the low-risk dev tooling churn; app deps stay individual.
       dev-dependencies:
         dependency-type: development
+    ignore:
+      # Deliberate holds - lift each when its blocker clears:
+      # eslint 10 blocked until eslint-plugin-jsx-a11y supports it.
+      - dependency-name: eslint
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@eslint/js'
+        update-types: ['version-update:semver-major']
+      # tailwind 4 is a config-system migration, not a bump.
+      - dependency-name: tailwindcss
+        update-types: ['version-update:semver-major']
+      # typescript 7 is outside typescript-eslint's supported range.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+      # @types/node tracks the runtime matrix (Node 20/22), not latest.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
   - package-ecosystem: github-actions
     directory: '/'
     schedule:
