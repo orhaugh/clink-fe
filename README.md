@@ -52,6 +52,32 @@ enabling CORS on the node:
 clink_node --role=coordinator --port=7070 --http-port=8081 --http-cors-origin='*'
 ```
 
+## Production: served by the coordinator, or the published image
+
+From clink v0.4.0 the coordinator serves a built console same-origin - one
+port carries both the UI and the JSON API, no web server and no CORS setup:
+
+```bash
+npm run build
+clink_node --role=coordinator --port=7070 --http-port=8081 --http-static-dir=$PWD/dist
+open http://localhost:8081
+```
+
+The same pairing ships prebuilt as **`ghcr.io/orhaugh/clink-console`**
+(linux/amd64): this console on a pinned clink runtime, tagged
+`<console-version>-clink<engine-version>` plus `latest`, built and
+smoke-tested by [`console-image.yml`](.github/workflows/console-image.yml)
+on every release tag.
+
+```bash
+docker run -p 8081:8081 ghcr.io/orhaugh/clink-console:latest
+open http://localhost:8081          # console + API, one origin
+```
+
+The default command runs a single coordinator; for a real cluster, compose
+it as the coordinator alongside `ghcr.io/orhaugh/clink-runtime` workers of
+the same engine version.
+
 ## What it shows
 
 - **Overview** - cluster rollup (slots, jobs), Worker fleet, recent jobs,
