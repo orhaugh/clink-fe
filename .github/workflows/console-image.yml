@@ -9,12 +9,12 @@ name: console-image
 
 on:
   push:
-    tags: ["v*"]
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       clink_version:
-        description: "clink runtime version to pin (e.g. 0.4.0)"
-        default: "0.4.0"
+        description: 'clink runtime version to pin (e.g. 0.4.0)'
+        default: '0.4.0'
 
 permissions:
   contents: read
