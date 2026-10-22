@@ -16,6 +16,9 @@ export interface WorkerSummary {
   slots_in_use: number
   lost: boolean
   http_port: number // 0 = worker not exposing HTTP (detail/logs/metrics unreachable)
+  // The cluster protocol version the worker registered with. 0 is a peer that
+  // predates the field; absent on a coordinator that predates it.
+  protocol_version?: number
 }
 
 export interface ClusterSnapshot {
@@ -37,6 +40,16 @@ export interface JobSummary {
   completion_signalled: boolean
   cancel_requested: boolean
   error_count: number
+  // RUNNING | COMPLETED_OK | FAILED | CANCELLED, the coordinator's own verdict.
+  // Absent on a coordinator that predates it; deriveJobState falls back to the
+  // flags above.
+  status?: string
+  // The end-to-end delivery guarantee the coordinator's analyser computed at
+  // submit (see lib/guarantees.ts for the levels) and what limits it, e.g.
+  // "sink 'file_text_sink'" or "checkpointing disabled". Absent on a
+  // coordinator that predates them.
+  delivery_guarantee?: string
+  guarantee_limiting_factor?: string
 }
 
 export interface JobTask {
@@ -65,6 +78,24 @@ export interface JobDetail {
   tasks: JobTask[]
   latest_completed_checkpoint_id: number
   pending_checkpoint_ids: number[]
+  status?: string
+  // The checkpoint configuration the job is RUNNING with. A job's recovery
+  // behaviour is decided entirely by these: whether it checkpoints at all,
+  // how often, where state goes, how many restarts it gets. All absent on a
+  // coordinator that predates them.
+  checkpoint_dir?: string // empty = no checkpointing
+  checkpoint_interval_ms?: number
+  state_backend_uri?: string // empty = the coordinator's default backend
+  restore_from_dir?: string // empty = a fresh start
+  restore_from_checkpoint_id?: number
+  max_restarts_on_worker_loss?: number
+  unaligned_checkpoints?: boolean
+  adaptive_barrier_mode?: boolean // the coordinator picks aligned/unaligned per trigger
+  // As JobSummary, plus the analyser's full reasoning and its warnings.
+  delivery_guarantee?: string
+  guarantee_limiting_factor?: string
+  guarantee_reasons?: string[]
+  guarantee_warnings?: string[]
 }
 
 export interface GraphSubtaskPlacement {
@@ -264,9 +295,9 @@ export interface RescaleAck {
   message: string
 }
 
-// SSE event from /api/v1/events. The `type` is the SSE event name
-// (coordinator.worker_registered, coordinator.job_submitted, coordinator.job_completed, coordinator.worker_lost); `data`
-// is the raw payload string (often JSON or a short descriptor).
+// SSE event from /api/v1/events. The `type` is the SSE event name (see
+// EVENT_TYPES in hooks/useEvents.ts for the names the coordinator publishes);
+// `data` is the raw payload string (often JSON or a short descriptor).
 export interface ClinkEvent {
   id: string
   type: string
@@ -274,7 +305,6 @@ export interface ClinkEvent {
   ts: number // client receive time (ms)
 }
 
-// Derived, presentation-only job state (the API does not expose a single
 // --- SQL workbench (GET /api/v1/catalog, /api/v1/connectors,
 //     POST /api/v1/jobs/sql) -------------------------------------------------
 
@@ -295,11 +325,42 @@ export interface CatalogTable {
 
 export type ConnectorCategory = 'messaging' | 'storage' | 'database' | 'observability' | 'testing'
 
+// One capability record the build declares for a connector variant
+// (connectors::ConnectorCapabilities), e.g. kafka, kafka_2pc, postgres_upsert.
+// `delivery` is the per-connector vocabulary (at_least_once,
+// exactly_once_two_phase_commit, ...; see lib/guarantees.ts), not the job's
+// end-to-end level.
+export interface ConnectorVariant {
+  name: string
+  source: boolean
+  sink: boolean
+  delivery: string
+  transactional: boolean
+  commit_recoverable: boolean
+  replayable: boolean
+  offset_model: string // none | file_offset | log_offset | lsn | timestamp | opaque_token
+  checkpoint_integrated: boolean
+  tls: boolean
+  available_in_sql: boolean
+}
+
 export interface SqlConnector {
   name: string
   source: boolean
   sink: boolean
   category: ConnectorCategory | string
+  // Whether THIS coordinator binary was built with the connector. Absent on a
+  // coordinator that predates the field (treat as unknown, not as false).
+  available?: boolean
+  // Declared capabilities, grouped under the vocabulary entry by the
+  // coordinator: the strongest sink guarantee among the connector's records,
+  // whether a source record replays from a recorded position, whether any
+  // record offers TLS, and the records themselves. Absent on a coordinator
+  // that predates them.
+  sink_delivery?: string
+  source_replayable?: boolean
+  tls?: boolean
+  variants?: ConnectorVariant[]
 }
 
 export type SqlMode = 'explain' | 'compile' | 'submit'
@@ -333,15 +394,28 @@ export interface SqlResult {
   position?: number
 }
 
-// status enum; we infer it from the summary flags + error count).
+// Presentation job state. The coordinator reports its own verdict as
+// `status` (RUNNING / COMPLETED_OK / FAILED / CANCELLED); that wins when
+// present, and the flags reconstruct it on a coordinator that predates the
+// field, with the same precedence (failed > cancelled > completed > running).
 export type JobState = 'running' | 'completed' | 'cancelled' | 'failed'
+
+const SERVER_STATUS: Record<string, JobState> = {
+  RUNNING: 'running',
+  COMPLETED_OK: 'completed',
+  FAILED: 'failed',
+  CANCELLED: 'cancelled',
+}
 
 export function deriveJobState(j: {
   cancel_requested: boolean
   completion_signalled: boolean
   error_count?: number
   errors?: string[]
+  status?: string
 }): JobState {
+  const reported = j.status ? SERVER_STATUS[j.status] : undefined
+  if (reported) return reported
   const errs = j.error_count ?? j.errors?.length ?? 0
   if (errs > 0) return 'failed'
   if (j.cancel_requested) return 'cancelled'

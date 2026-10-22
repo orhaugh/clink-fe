@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Boxes, Plug, Search } from 'lucide-react'
+import { Boxes, Lock, Plug, Search, ShieldCheck } from 'lucide-react'
 import { useConnectors } from '@/hooks/useApi'
 import { PageHeader } from '@/components/PageHeader'
 import { StatCard } from '@/components/StatCard'
@@ -15,7 +15,9 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { ErrorState, LoadingState, EmptyState } from '@/components/States'
-import type { SqlConnector } from '@/lib/types'
+import { DeliveryBadge } from '@/components/StatusBadge'
+import { isExactlyOnceDelivery } from '@/lib/guarantees'
+import type { ConnectorVariant, SqlConnector } from '@/lib/types'
 
 // Short, factual one-line descriptions keyed by connector name. Anything not
 // listed here renders with a blank description rather than an invented one.
@@ -81,6 +83,80 @@ function CapabilityBadges({ source, sink }: { source: boolean; sink: boolean }) 
   )
 }
 
+// Whether THIS coordinator binary was built with the connector. The field is
+// absent on a coordinator that predates it, which is "unknown", not "no".
+function AvailabilityBadge({ available }: { available: boolean | undefined }) {
+  if (available === undefined) return <span className="text-xs text-muted-foreground">-</span>
+  return available ? (
+    <Badge variant="ok">in this build</Badge>
+  ) : (
+    <Badge
+      variant="muted"
+      title="Not linked into the running coordinator; a submit using it is refused."
+    >
+      not built
+    </Badge>
+  )
+}
+
+// The capability records behind one vocabulary entry (kafka -> kafka,
+// kafka_2pc). Each row is what the engine's delivery-guarantee analyser
+// reads for an operator built on that record.
+function VariantTable({ variants }: { variants: ConnectorVariant[] }) {
+  return (
+    <table className="w-full text-xs">
+      <thead className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        <tr>
+          <th className="py-1 pr-3 text-left font-medium">Record</th>
+          <th className="py-1 pr-3 text-left font-medium">Role</th>
+          <th className="py-1 pr-3 text-left font-medium">Delivery</th>
+          <th className="py-1 pr-3 text-left font-medium">Commit</th>
+          <th className="py-1 pr-3 text-left font-medium">Replay</th>
+          <th className="py-1 pr-3 text-left font-medium">Offset model</th>
+          <th className="py-1 pr-3 text-left font-medium">Checkpoint</th>
+          <th className="py-1 pr-3 text-left font-medium">TLS</th>
+          <th className="py-1 text-left font-medium">SQL</th>
+        </tr>
+      </thead>
+      <tbody>
+        {variants.map((v) => (
+          <tr key={v.name} className="border-t border-border/40">
+            <td className="py-1 pr-3 font-mono">{v.name}</td>
+            <td className="py-1 pr-3 text-muted-foreground">
+              {[v.source && 'source', v.sink && 'sink'].filter(Boolean).join(' + ') || '-'}
+            </td>
+            <td className="py-1 pr-3">
+              <DeliveryBadge level={v.delivery} />
+            </td>
+            <td className="py-1 pr-3 text-muted-foreground">
+              {v.transactional
+                ? v.commit_recoverable
+                  ? 'two-phase, recoverable'
+                  : 'two-phase, needs confirmation'
+                : '-'}
+            </td>
+            <td className="py-1 pr-3 text-muted-foreground">
+              {v.source ? (v.replayable ? 'replays' : 'no replay') : '-'}
+            </td>
+            <td className="py-1 pr-3 font-mono text-muted-foreground">{v.offset_model}</td>
+            <td className="py-1 pr-3 text-muted-foreground">
+              {v.checkpoint_integrated ? 'participates' : '-'}
+            </td>
+            <td className="py-1 pr-3 text-muted-foreground">{v.tls ? 'yes' : '-'}</td>
+            <td className="py-1 text-muted-foreground">{v.available_in_sql ? 'yes' : '-'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
+// A build reports capability records when the coordinator is new enough; the
+// extra columns are shown only then, so an older coordinator keeps the plain table.
+function reportsCapabilities(connectors: SqlConnector[]): boolean {
+  return connectors.some((c) => c.variants !== undefined)
+}
+
 export function Connectors() {
   const connectors = useConnectors()
   const [query, setQuery] = useState('')
@@ -112,6 +188,11 @@ export function Connectors() {
   }, [connectors.data, q])
 
   const total = connectors.data?.length ?? 0
+  const withCapabilities = reportsCapabilities(connectors.data ?? [])
+  const availableCount = (connectors.data ?? []).filter((c) => c.available).length
+  const exactlyOnceSinks = (connectors.data ?? []).filter((c) =>
+    isExactlyOnceDelivery(c.sink_delivery),
+  ).length
 
   return (
     <div className="space-y-6">
@@ -119,9 +200,12 @@ export function Connectors() {
         title="Connectors"
         description={
           <>
-            The WITH (connector='...') values this build understands.{' '}
+            The WITH (connector='...') vocabulary, with what each connector declares: whether it is
+            in this build, the strongest delivery its sink records offer, and whether its sources
+            replay.{' '}
             <span className="text-muted-foreground/80">
-              A connector only works at submit time if its impl is linked into the running build.
+              A job&apos;s end-to-end guarantee is the weakest link across its source, checkpointing
+              and sinks; see the job page for the verdict.
             </span>
           </>
         }
@@ -142,7 +226,7 @@ export function Connectors() {
       ) : (
         <>
           {total > 0 && (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
               <StatCard label="Connectors" value={total} icon={Plug} />
               <StatCard
                 label="Categories"
@@ -158,6 +242,19 @@ export function Connectors() {
                 label="Sinks"
                 value={connectors.data.filter((c) => c.sink).length}
                 tone="info"
+              />
+              <StatCard
+                label="In this build"
+                value={withCapabilities ? availableCount : '-'}
+                sub={withCapabilities ? `of ${total} known` : 'not reported'}
+                icon={Lock}
+              />
+              <StatCard
+                label="Exactly-once sinks"
+                value={withCapabilities ? exactlyOnceSinks : '-'}
+                sub={withCapabilities ? 'two-phase or atomic publish' : 'not reported'}
+                icon={ShieldCheck}
+                tone="ok"
               />
             </div>
           )}
@@ -202,18 +299,64 @@ export function Connectors() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-1/4">Connector</TableHead>
-                          <TableHead className="w-40">Capability</TableHead>
+                          <TableHead className="w-1/5">Connector</TableHead>
+                          <TableHead className="w-36">Capability</TableHead>
+                          {withCapabilities && (
+                            <>
+                              <TableHead>Build</TableHead>
+                              <TableHead>Sink delivery</TableHead>
+                              <TableHead>Source replay</TableHead>
+                              <TableHead>TLS</TableHead>
+                            </>
+                          )}
                           <TableHead>Description</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {items.map((c) => (
                           <TableRow key={c.name}>
-                            <TableCell className="font-mono text-foreground">{c.name}</TableCell>
+                            <TableCell className="font-mono text-foreground">
+                              {c.name}
+                              {c.variants && c.variants.length > 0 && (
+                                <details className="mt-1 font-sans">
+                                  <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+                                    {c.variants.length} record{c.variants.length === 1 ? '' : 's'}
+                                  </summary>
+                                  <div className="mt-2 overflow-x-auto rounded-md border border-border/60 bg-muted/20 p-2">
+                                    <VariantTable variants={c.variants} />
+                                  </div>
+                                </details>
+                              )}
+                            </TableCell>
                             <TableCell>
                               <CapabilityBadges source={c.source} sink={c.sink} />
                             </TableCell>
+                            {withCapabilities && (
+                              <>
+                                <TableCell>
+                                  <AvailabilityBadge available={c.available} />
+                                </TableCell>
+                                <TableCell>
+                                  {c.sink ? (
+                                    <DeliveryBadge level={c.sink_delivery} />
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">-</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-xs text-muted-foreground">
+                                  {c.source
+                                    ? c.source_replayable
+                                      ? 'replays from a recorded position'
+                                      : c.variants && c.variants.length > 0
+                                        ? 'no replay'
+                                        : '-'
+                                    : '-'}
+                                </TableCell>
+                                <TableCell className="text-xs text-muted-foreground">
+                                  {c.tls ? 'yes' : '-'}
+                                </TableCell>
+                              </>
+                            )}
                             <TableCell className="text-muted-foreground">
                               {DESCRIPTIONS[c.name] ?? ''}
                             </TableCell>

@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/sonner'
+import { RecoveryOptionsFields } from '@/components/RecoveryOptions'
+import { describeRecovery, type RecoveryOptions } from '@/lib/recovery'
 
 export function SubmitJob() {
   const navigate = useNavigate()
@@ -19,6 +21,7 @@ export function SubmitJob() {
   const [soName, setSoName] = useState('')
   const [spec, setSpec] = useState('')
   const [specName, setSpecName] = useState('')
+  const [recovery, setRecovery] = useState<RecoveryOptions>({})
 
   const onSubmitSo = async () => {
     if (!file) return
@@ -43,9 +46,11 @@ export function SubmitJob() {
 
   const onSubmitSpec = async () => {
     if (!specValid) return
-    const ack = await submitSpec.mutateAsync({ spec, name: specName || undefined })
+    const ack = await submitSpec.mutateAsync({ spec, name: specName || undefined, recovery })
     if (ack.ok && ack.job_id != null) {
-      toast.success(`Submitted job #${ack.job_id}`, { description: ack.name })
+      toast.success(`Submitted job #${ack.job_id}`, {
+        description: `${ack.name ?? ''} ${describeRecovery(recovery)}`.trim(),
+      })
       navigate(`/jobs/${ack.job_id}`)
     } else {
       toast.error('Submission rejected', { description: ack.error ?? 'unknown error' })
@@ -113,6 +118,10 @@ export function SubmitJob() {
                   onChange={(e) => setSoName(e.target.value)}
                 />
               </div>
+              <p className="text-xs text-muted-foreground">
+                This upload carries no recovery options: the endpoint takes none, so the job runs
+                with the coordinator&apos;s defaults. The JSON spec and SQL paths accept them.
+              </p>
               <Button onClick={onSubmitSo} disabled={!file || submitSo.isPending}>
                 <Send className="h-4 w-4" />
                 {submitSo.isPending ? 'Submitting...' : 'Submit job'}
@@ -154,6 +163,7 @@ export function SubmitJob() {
                   <p className="text-xs text-danger">Not valid JSON yet.</p>
                 )}
               </div>
+              <RecoveryOptionsFields value={recovery} onChange={setRecovery} idPrefix="spec" />
               <Button onClick={onSubmitSpec} disabled={!specValid || submitSpec.isPending}>
                 <Send className="h-4 w-4" />
                 {submitSpec.isPending ? 'Submitting...' : 'Submit spec'}

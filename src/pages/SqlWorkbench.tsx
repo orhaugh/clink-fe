@@ -9,8 +9,10 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge, type BadgeProps } from '@/components/ui/badge'
+import { RecoveryOptionsFields } from '@/components/RecoveryOptions'
 import { useCatalog, useConnectors, useRunSql } from '@/hooks/useApi'
 import { cn } from '@/lib/utils'
+import type { RecoveryOptions } from '@/lib/recovery'
 import type { CatalogTable, SqlMode, SqlResult } from '@/lib/types'
 
 const STARTER = `-- Define a source + sink, then run a query.
@@ -216,6 +218,7 @@ export function SqlWorkbench() {
   const [sqlText, setSqlText] = useState(STARTER)
   const [parallelism, setParallelism] = useState(1)
   const [jobName, setJobName] = useState('')
+  const [recovery, setRecovery] = useState<RecoveryOptions>({})
   const [filter, setFilter] = useState('')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [result, setResult] = useState<SqlResult | undefined>()
@@ -242,6 +245,7 @@ export function SqlWorkbench() {
       mode,
       parallelism: parallelism > 1 ? parallelism : undefined,
       name: jobName.trim() || undefined,
+      recovery: mode === 'submit' ? recovery : undefined,
     })
     setResult(res)
   }
@@ -356,6 +360,9 @@ export function SqlWorkbench() {
           </div>
 
           <SqlEditor value={sqlText} onChange={setSqlText} schema={schema} height="360px" />
+
+          {/* Applies to Submit only: Explain and Compile deploy nothing. */}
+          <RecoveryOptionsFields value={recovery} onChange={setRecovery} idPrefix="sql" />
 
           {result ? (
             <ResultPanel mode={lastMode} result={result} />

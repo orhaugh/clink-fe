@@ -38,4 +38,18 @@ describe('deriveJobState', () => {
   it('completed when signalled and not cancelled/failed', () => {
     expect(deriveJobState({ ...base, completion_signalled: true })).toBe('completed')
   })
+
+  it("takes the coordinator's own status over the flags when it reports one", () => {
+    expect(deriveJobState({ ...base, status: 'RUNNING', error_count: 1 })).toBe('running')
+    expect(deriveJobState({ ...base, status: 'COMPLETED_OK' })).toBe('completed')
+    expect(deriveJobState({ ...base, status: 'FAILED' })).toBe('failed')
+    expect(deriveJobState({ ...base, status: 'CANCELLED', completion_signalled: true })).toBe(
+      'cancelled',
+    )
+  })
+
+  it('falls back to the flags on an empty or unknown status', () => {
+    expect(deriveJobState({ ...base, status: '', completion_signalled: true })).toBe('completed')
+    expect(deriveJobState({ ...base, status: 'SOMETHING_NEW', error_count: 2 })).toBe('failed')
+  })
 })

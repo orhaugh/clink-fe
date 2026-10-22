@@ -26,6 +26,7 @@ import type {
   WorkerSnapshot,
   WorkerSummary,
 } from './types'
+import { appendRecoveryParams, type RecoveryOptions } from './recovery'
 
 export class ApiError extends Error {
   constructor(
@@ -63,6 +64,15 @@ export interface LogQuery {
   limit?: number
   since_ms?: number
   source?: string
+}
+
+// Serialises with encodeURIComponent rather than URLSearchParams.toString(),
+// which writes a space as '+': the coordinator percent-decodes query values
+// and a '+' inside a state-backend URI (s3sst+forst://...) must survive.
+function encodeQuery(p: URLSearchParams): string {
+  const parts: string[] = []
+  p.forEach((v, k) => parts.push(`${encodeURIComponent(k)}=${encodeURIComponent(v)}`))
+  return parts.join('&')
 }
 
 function logPath(base: string, q: LogQuery = {}): string {
@@ -111,8 +121,19 @@ export const api = {
     const res = await fetch('/api/v1/jobs', { method: 'POST', body: fd })
     return (await res.json()) as SubmitAck
   },
-  submitSpec: async (specJson: string, name?: string): Promise<SubmitAck> => {
-    const res = await fetch(`/api/v1/jobs/spec${name ? `?name=${encodeURIComponent(name)}` : ''}`, {
+  // Recovery options ride the query string (checkpoint_dir, checkpoint_interval_ms,
+  // state_backend, max_restarts_on_worker_loss, alignment, restore_from_*); an
+  // unset one keeps the coordinator's default.
+  submitSpec: async (
+    specJson: string,
+    name?: string,
+    recovery?: RecoveryOptions,
+  ): Promise<SubmitAck> => {
+    const p = new URLSearchParams()
+    if (name) p.set('name', name)
+    appendRecoveryParams(p, recovery)
+    const qs = encodeQuery(p)
+    const res = await fetch(`/api/v1/jobs/spec${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: specJson,
@@ -151,19 +172,21 @@ export const api = {
   connectors: (s?: AbortSignal) =>
     getJson<{ connectors: SqlConnector[] }>('/api/v1/connectors', s).then((r) => r.connectors),
   // Compile / explain / submit raw SQL. The body is plain SQL text; options ride
-  // the query string. A 400 (parse/bind/compile error) is NOT thrown - the
-  // parsed {ok:false,error,position} body is returned so the editor can show it.
+  // the query string, and on submit so do the recovery options (the same
+  // parameters as /jobs/spec). A 400 (parse/bind/compile error) is NOT thrown -
+  // the parsed {ok:false,error,position} body is returned so the editor can show it.
   runSql: async (
     sql: string,
     mode: SqlMode,
-    opts: { parallelism?: number; name?: string } = {},
+    opts: { parallelism?: number; name?: string; recovery?: RecoveryOptions } = {},
   ): Promise<SqlResult> => {
     const p = new URLSearchParams({ mode })
     if (opts.parallelism != null) p.set('parallelism', String(opts.parallelism))
     if (opts.name) p.set('name', opts.name)
+    if (mode === 'submit') appendRecoveryParams(p, opts.recovery)
     let res: Response
     try {
-      res = await fetch(`/api/v1/jobs/sql?${p.toString()}`, {
+      res = await fetch(`/api/v1/jobs/sql?${encodeQuery(p)}`, {
         method: 'POST',
         headers: { 'content-type': 'text/plain' },
         body: sql,

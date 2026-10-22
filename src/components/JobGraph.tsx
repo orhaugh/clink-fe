@@ -26,10 +26,11 @@ import {
 import { cn } from '@/lib/utils'
 import { fmtCount } from '@/lib/format'
 import type { GraphEdge, GraphNode, JobGraphDetail, OperatorRuntime } from '@/lib/types'
+import type { OpRate } from '@/hooks/useOperatorRates'
 
 const NODE_W = 240
 
-export type OpRate = { in: number; out: number }
+export type { OpRate }
 type OpData = { node: GraphNode; stats?: OperatorRuntime; rate?: OpRate }
 
 const kindStyle: Record<string, { ring: string; icon: typeof Database; label: string }> = {

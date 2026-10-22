@@ -4,9 +4,12 @@
 [![licence](https://img.shields.io/badge/licence-Apache--2.0-blue.svg)](LICENSE)
 
 A modern operations console for [clink](https://github.com/orhaugh/clink)
-clusters: Coordinator and Worker visibility, job submission, live per-operator
-DAG overlays, a SQL workbench, data lineage, cluster-wide logs, metrics
-dashboards, and job failure inspection.
+clusters: Coordinator and Worker visibility, job submission with recovery
+options, each job's delivery guarantee and the sources and sinks behind it,
+live per-operator DAG overlays, a SQL workbench, data lineage, cluster-wide
+logs, metrics dashboards, and job failure inspection.
+
+![Job detail: topology, sources and sinks, recovery and delivery guarantee](docs/screenshots/job-detail.png)
 
 Built with React + TypeScript + Vite + Tailwind + shadcn-style components, in a
 dark ops theme. It talks only to clink's existing HTTP API; there is no separate
@@ -80,26 +83,51 @@ the same engine version.
 
 ## What it shows
 
-- **Overview** - cluster rollup (slots, jobs), Worker fleet, recent jobs,
-  and a live event feed (SSE).
-- **Workers** - the fleet, plus per-worker detail: running subtasks, config,
-  parsed metrics, and logs.
-- **Jobs** - submitted jobs, plus per-job detail: subtask placement, checkpoint
-  progress, structured per-subtask failures with stack traces, and savepoint /
-  rescale / cancel actions.
+- **Overview** - cluster rollup (slots, jobs), Worker fleet, recent jobs with
+  their status and delivery guarantee, and a live event feed (SSE).
+- **Workers** - the fleet with each worker's cluster protocol version (a
+  mixed-version fleet is called out), plus per-worker detail: running
+  subtasks, config, parsed metrics, and logs.
+- **Jobs** - submitted jobs with the coordinator's own status and the
+  end-to-end delivery guarantee its analyser computed at submit. Per job: the
+  topology with live overlays, a **sources & sinks** table (the connector each
+  endpoint was built on and the delivery it declares, the dataset it reads or
+  writes, parallelism, live throughput and watermark), the **recovery
+  configuration the job actually runs with** (checkpoint directory and
+  interval, state backend, barrier mode, restarts, restore source) with the
+  guarantee, what limits it and the analyser's reasoning, data lineage,
+  structured per-subtask failures with stack traces, and savepoint / rescale /
+  cancel actions.
 - **SQL workbench** - author clink SQL in a dialect-aware editor with
   catalogue-driven autocomplete, browse the session catalogue and the connector
-  vocabulary, and Explain (see the logical plan), Compile (see the JobGraphSpec)
-  or Submit (run it on the cluster). See [Sample SQL](#sample-sql-for-the-workbench).
-- **Connectors** - the `WITH (connector='...')` vocabulary this build
-  understands, grouped by category with source/sink capability.
-- **Submit** - upload a compiled job `.so` (multipart) or post a JSON job spec.
+  vocabulary, set the job's recovery options, and Explain (see the logical
+  plan), Compile (see the JobGraphSpec) or Submit (run it on the cluster). See
+  [Sample SQL](#sample-sql-for-the-workbench).
+- **Connectors** - the `WITH (connector='...')` vocabulary, grouped by
+  category, with what the running coordinator declares for each: whether it
+  is in this build, the strongest delivery its sink records offer, whether its
+  sources replay, TLS, and the capability records themselves.
+- **Submit** - upload a compiled job `.so` (multipart) or post a JSON job spec
+  with its recovery options (checkpoint directory and interval, state backend,
+  restarts on worker loss, barrier alignment, restore source).
 - **Logs** - cluster-wide log explorer with level / source / since filters and
   follow mode, aggregating the coordinator and every Worker.
 - **Metrics** - purpose-built dashboards over the coordinator Prometheus feed
   (checkpoints, state & disaggregation, connectors, SQL pipeline, resilience,
   orchestration, process / system), plus a searchable raw metric-family
   explorer. System cards also appear on each Worker's metrics tab.
+
+## Screenshots
+
+Taken against a local two-worker cluster built from clink `main`, with a
+checkpointed SQL job and one without checkpointing, so the guarantee column
+shows both outcomes.
+
+|                                                                                                              |                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| ![Overview](docs/screenshots/overview.png) Overview: fleet, live events, recent jobs with their guarantee    | ![Jobs](docs/screenshots/jobs.png) Jobs: the coordinator's status and each job's delivery guarantee         |
+| ![Job detail](docs/screenshots/job-detail.png) Job detail: topology, sources & sinks, recovery and guarantee | ![Connectors](docs/screenshots/connectors.png) Connectors: availability, declared delivery, replay, records |
+| ![SQL workbench](docs/screenshots/sql-workbench.png) SQL workbench with the recovery options                 | ![Workers](docs/screenshots/workers.png) Workers with their protocol versions                               |
 
 ## Sample SQL for the workbench
 
@@ -268,9 +296,14 @@ and sink for the `file` connector, e.g.
 ## API source of truth
 
 See `docs/clink-api.md` for the exact endpoint and JSON-shape reference the
-typed client in `src/lib/` is built against. Savepoint, rescale, and structured
+typed client in `src/lib/` is built against. Savepoint, rescale, structured
 subtask failures (with capture-site traces where the engine build supports
-them) are all served over HTTP; metrics remain Prometheus text.
+them), the recovery parameters on submit, and each job's checkpoint
+configuration and delivery guarantee are all served over HTTP; metrics remain
+Prometheus text. Fields a coordinator does not report (one older than the
+console) render as a dash rather than a guessed value: the guarantee, the
+recovery configuration and the connector capability records need a clink
+newer than 0.11.0; the job status and worker protocol version are older.
 
 ## Build
 

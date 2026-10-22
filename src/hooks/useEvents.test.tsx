@@ -111,6 +111,14 @@ describe('useEvents', () => {
     expect(qc.invalidateQueries).toHaveBeenCalledWith({ queryKey: qk.cluster })
   })
 
+  it('refreshes every lineage query when a job lineage event arrives', () => {
+    renderHook(() => useEvents(), { wrapper })
+    act(() => es().emit('coordinator.job_lineage', '{"job_id":3}'))
+    expect(qc.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['jobLineage'] })
+    // It is also a job event, so the jobs list refreshes.
+    expect(qc.invalidateQueries).toHaveBeenCalledWith({ queryKey: qk.jobs })
+  })
+
   it('caps retained events at 200', () => {
     const { result } = renderHook(() => useEvents(), { wrapper })
     act(() => {

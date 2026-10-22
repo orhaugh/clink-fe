@@ -13,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { ErrorState, LoadingState, EmptyState } from '@/components/States'
-import { JobStateBadge } from '@/components/StatusBadge'
+import { GuaranteeBadge, JobStateBadge } from '@/components/StatusBadge'
 import { deriveJobState } from '@/lib/types'
 import { pct } from '@/lib/format'
 
@@ -52,6 +52,7 @@ export function Jobs() {
                 <TableRow>
                   <TableHead>Job</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Guarantee</TableHead>
                   <TableHead>Progress</TableHead>
                   <TableHead>Subtasks done</TableHead>
                   <TableHead>Errors</TableHead>
@@ -73,6 +74,12 @@ export function Jobs() {
                       </TableCell>
                       <TableCell>
                         <JobStateBadge state={deriveJobState(j)} />
+                      </TableCell>
+                      <TableCell>
+                        <GuaranteeBadge
+                          level={j.delivery_guarantee}
+                          limitingFactor={j.guarantee_limiting_factor}
+                        />
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">

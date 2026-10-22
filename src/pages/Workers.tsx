@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ExternalLink } from 'lucide-react'
+import { AlertTriangle, ExternalLink } from 'lucide-react'
 import { useWorkers } from '@/hooks/useApi'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
@@ -15,9 +15,11 @@ import { Badge } from '@/components/ui/badge'
 import { ErrorState, LoadingState, EmptyState } from '@/components/States'
 import { WorkerStateBadge } from '@/components/StatusBadge'
 import { pct } from '@/lib/format'
+import { protocolVersions } from '@/lib/fleet'
 
 export function Workers() {
   const workers = useWorkers()
+  const versions = protocolVersions(workers.data ?? [])
 
   return (
     <div className="space-y-6">
@@ -25,6 +27,20 @@ export function Workers() {
         title="Workers"
         description="The worker fleet registered with this Coordinator. Detail, logs and metrics are proxied per worker."
       />
+      {versions.size > 1 && (
+        <div className="flex items-start gap-2 rounded-md border border-warn/40 bg-warn/[0.06] px-4 py-3 text-sm text-warn">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            Workers registered with different cluster protocol versions:{' '}
+            {[...versions.entries()]
+              .sort((a, b) => a[0] - b[0])
+              .map(([v, n]) => `v${v} ×${n}`)
+              .join(', ')}
+            . The coordinator accepted them all; the fleet is mid-upgrade or a worker runs an older
+            binary.
+          </div>
+        </div>
+      )}
       <Card>
         <CardContent className="px-0 py-0">
           {workers.isError ? (
@@ -45,6 +61,7 @@ export function Workers() {
                   <TableHead>Slots</TableHead>
                   <TableHead>Utilisation</TableHead>
                   <TableHead>HTTP</TableHead>
+                  <TableHead>Protocol</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
@@ -74,6 +91,18 @@ export function Workers() {
                         <span className="font-mono text-xs">:{t.http_port}</span>
                       ) : (
                         <Badge variant="muted">none</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {t.protocol_version ? (
+                        <span className="font-mono text-xs">v{t.protocol_version}</span>
+                      ) : (
+                        <span
+                          className="text-xs text-muted-foreground"
+                          title="The worker, or this coordinator, predates the protocol version field."
+                        >
+                          -
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>

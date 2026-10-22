@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, type LogQuery } from '@/lib/api'
+import type { RecoveryOptions } from '@/lib/recovery'
 import type { SqlMode } from '@/lib/types'
 
 // Poll cadences tuned for an ops console: cluster topology a few seconds,
@@ -84,13 +85,16 @@ export const useJobOperators = (id: number, enabled = true) =>
     enabled,
   })
 
-// Lineage is a pure function of the submitted spec, so it never changes over
-// a job's life: fetch once, no polling.
+// Lineage is a pure function of the submitted spec, so once the coordinator
+// reports it, it never changes over a job's life: fetch once, no polling. Until
+// it is available (the job's graph not yet retained) keep asking, and the
+// coordinator.job_lineage SSE event invalidates it as well (see useEvents).
 export const useJobLineage = (id: number) =>
   useQuery({
     queryKey: qk.jobLineage(id),
     queryFn: ({ signal }) => api.jobLineage(id, signal),
     staleTime: Infinity,
+    refetchInterval: (q) => (q.state.data?.available ? false : 5000),
   })
 
 export const useWorkers = () =>
@@ -197,7 +201,15 @@ export function useSubmitJobSo() {
 export function useSubmitSpec() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ spec, name }: { spec: string; name?: string }) => api.submitSpec(spec, name),
+    mutationFn: ({
+      spec,
+      name,
+      recovery,
+    }: {
+      spec: string
+      name?: string
+      recovery?: RecoveryOptions
+    }) => api.submitSpec(spec, name, recovery),
     onSuccess: () => void qc.invalidateQueries({ queryKey: qk.jobs }),
   })
 }
@@ -229,12 +241,14 @@ export function useRunSql() {
       mode,
       parallelism,
       name,
+      recovery,
     }: {
       sql: string
       mode: SqlMode
       parallelism?: number
       name?: string
-    }) => api.runSql(sql, mode, { parallelism, name }),
+      recovery?: RecoveryOptions
+    }) => api.runSql(sql, mode, { parallelism, name, recovery }),
     onSuccess: (res, { mode }) => {
       void qc.invalidateQueries({ queryKey: qk.catalog })
       if (mode === 'submit' && res.ok) {

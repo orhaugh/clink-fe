@@ -4,13 +4,18 @@ import { EVENTS_PATH } from '@/lib/api'
 import { qk } from './useApi'
 import type { ClinkEvent } from '@/lib/types'
 
-// Named SSE events clink publishes from the Coordinator EventBus. clink sets the
-// SSE `event:` field to the type, so we attach a listener per type (EventSource
-// has no wildcard) plus the default `message` channel as a fallback.
+// Named SSE events the coordinator publishes (events::publish in
+// src/cluster/coordinator.cpp): a worker registering, a job submitted, its
+// lineage extracted (shortly after the submit), and a job completing. clink
+// sets the SSE `event:` field to the type, so we attach a listener per type
+// (EventSource has no wildcard) plus the default `message` channel as a
+// fallback. worker_lost is kept for a coordinator that adds it; today a lost
+// worker shows through the polled fleet views.
 export const EVENT_TYPES = [
   'coordinator.worker_registered',
   'coordinator.worker_lost',
   'coordinator.job_submitted',
+  'coordinator.job_lineage',
   'coordinator.job_completed',
 ] as const
 
@@ -46,6 +51,11 @@ export function useEvents() {
       if (type.startsWith('coordinator.job')) {
         void qc.invalidateQueries({ queryKey: qk.jobs })
         void qc.invalidateQueries({ queryKey: qk.cluster })
+      }
+      // Lineage queries never go stale on their own (useJobLineage), so the
+      // event that announces a job's lineage is what refreshes an open page.
+      if (type === 'coordinator.job_lineage') {
+        void qc.invalidateQueries({ queryKey: ['jobLineage'] })
       }
     }
 

@@ -176,6 +176,23 @@ describe('mutations', () => {
     await api.submitSpec('{}', 'my job')
     expect(fn.mock.calls[0][0]).toBe('/api/v1/jobs/spec?name=my%20job')
   })
+
+  it('submitSpec carries the recovery options as the coordinator query parameters', async () => {
+    const fn = mockFetch(() => resp({ json: {} }))
+    await api.submitSpec('{}', undefined, {
+      checkpoint_dir: '/var/lib/clink/ckpt',
+      checkpoint_interval_ms: 5000,
+      state_backend: 's3sst+forst:///bucket/state',
+      alignment: 'adaptive',
+    })
+    const url = fn.mock.calls[0][0] as string
+    expect(url.startsWith('/api/v1/jobs/spec?')).toBe(true)
+    expect(url).toContain('checkpoint_dir=%2Fvar%2Flib%2Fclink%2Fckpt')
+    expect(url).toContain('checkpoint_interval_ms=5000')
+    // '+' is a literal in a backend URI, so it must not be written as a space.
+    expect(url).toContain('state_backend=s3sst%2Bforst%3A%2F%2F%2Fbucket%2Fstate')
+    expect(url).toContain('alignment=adaptive')
+  })
 })
 
 describe('remaining GET routes', () => {
@@ -240,6 +257,16 @@ describe('runSql (never throws)', () => {
     expect(url).toContain('mode=submit')
     expect(url).toContain('parallelism=4')
     expect(url).toContain('name=q')
+  })
+
+  it('sends the recovery options on submit only', async () => {
+    const fn = mockFetch(() => resp({ json: { ok: true } }))
+    const recovery = { checkpoint_dir: '/ckpt', max_restarts_on_worker_loss: 2 }
+    await api.runSql('INSERT INTO s SELECT 1', 'submit', { recovery })
+    await api.runSql('INSERT INTO s SELECT 1', 'explain', { recovery })
+    expect(fn.mock.calls[0][0]).toContain('checkpoint_dir=%2Fckpt')
+    expect(fn.mock.calls[0][0]).toContain('max_restarts_on_worker_loss=2')
+    expect(fn.mock.calls[1][0]).toBe('/api/v1/jobs/sql?mode=explain')
   })
 
   it('returns the parsed error body on a 400 rather than throwing', async () => {

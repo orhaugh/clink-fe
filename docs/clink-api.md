@@ -13,34 +13,34 @@ cross-origin deployment start the node with `--http-cors-origin=<origin>`.
 
 ## Coordinator endpoints
 
-| Method | Path                           | Response                                                                                                                                     |
-| ------ | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/v1/health`               | `{ role, ok, uptime_s, bound_port }`                                                                                                         |
-| GET    | `/api/v1/cluster`              | `ClusterSnapshot` (rollup + embedded `workers: WorkerSummary[]`)                                                                             |
-| GET    | `/api/v1/config`               | `{ bind_host, advertise_host, heartbeat_timeout_ms, watchdog_interval_ms, submit_wait_for_slots_ms, restart_drain_timeout_ms }`              |
-| GET    | `/api/v1/jobs`                 | `{ jobs: JobSummary[] }`                                                                                                                     |
-| GET    | `/api/v1/jobs/:id`             | `JobDetail` (404 `{error}` if unknown)                                                                                                       |
-| GET    | `/api/v1/jobs/:id/graph`       | `JobGraphDetail` (logical topology: `nodes`, `edges`, `available`, `topology_version`)                                                       |
-| GET    | `/api/v1/jobs/:id/operators`   | `{ job_id, available, operators: OperatorRuntime[] }` per-operator runtime stats, aggregated across workers                                  |
-| GET    | `/api/v1/jobs/:id/lineage`     | `{ job_id, available, lineage: { sources, sinks, edges } }` external-dataset lineage (404 if unknown)                                        |
-| POST   | `/api/v1/jobs`                 | multipart: file part `job_so` (+ optional text `job_name`) → `{ ok, job_id, name }` or `{ error }`                                           |
-| POST   | `/api/v1/jobs/spec`            | JSON body (JobGraphSpec), `?name=` → `{ ok, job_id, name }`                                                                                  |
-| POST   | `/api/v1/jobs/:id/cancel`      | `{ job_id, ok, message }` (404/409 on unknown/already-complete/in-progress)                                                                  |
-| POST   | `/api/v1/jobs/:id/savepoint`   | `?timeout_ms=` → `{ job_id, ok, checkpoint_id, checkpoint_dir, message }` (404/409 on failure)                                               |
-| POST   | `/api/v1/jobs/:id/rescale`     | JSON body `{ "<role>": <parallelism>, ... }` (scale-up only) → `{ job_id, ok, message }`                                                     |
-| POST   | `/api/v1/jobs/sql`             | raw SQL body; `?mode=explain\|compile\|submit&parallelism&name` → `SqlResult` (400 body `{ok:false,error,position}` is returned, not thrown) |
-| GET    | `/api/v1/catalog`              | `{ tables: CatalogTable[] }` session catalog (tables/views registered via SQL DDL)                                                           |
-| GET    | `/api/v1/connectors`           | `{ connectors: SqlConnector[] }` the `WITH(connector='...')` vocabulary of this build                                                        |
-| GET    | `/api/v1/workers`              | `{ workers: WorkerSummary[] }`                                                                                                               |
-| GET    | `/api/v1/workers/:id/worker`   | `WorkerSnapshot` (proxied)                                                                                                                   |
-| GET    | `/api/v1/workers/:id/subtasks` | `{ subtasks: SubtaskRecord[] }` (proxied)                                                                                                    |
-| GET    | `/api/v1/workers/:id/config`   | `{ slot_count, heartbeat_interval_ms }` (proxied)                                                                                            |
-| GET    | `/api/v1/workers/:id/metrics`  | Prometheus text (proxied)                                                                                                                    |
-| GET    | `/api/v1/workers/:id/logs`     | `{ logs: LogRecord[] }` (proxied)                                                                                                            |
-| GET    | `/api/v1/logs`                 | `{ logs: LogRecord[] }`; `?level&limit&since_ms&source`                                                                                      |
-| GET    | `/api/v1/logs/components`      | `{ components: string[] }`                                                                                                                   |
-| GET    | `/metrics`                     | Prometheus exposition text (incl. system gauges, below)                                                                                      |
-| GET    | `/api/v1/events`               | SSE; event names `coordinator.worker_registered`, `coordinator.worker_lost`, `coordinator.job_submitted`, `coordinator.job_completed`        |
+| Method | Path                           | Response                                                                                                                                                                           |
+| ------ | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/health`               | `{ role, ok, uptime_s, bound_port }`                                                                                                                                               |
+| GET    | `/api/v1/cluster`              | `ClusterSnapshot` (rollup + embedded `workers: WorkerSummary[]`)                                                                                                                   |
+| GET    | `/api/v1/config`               | `{ bind_host, advertise_host, heartbeat_timeout_ms, watchdog_interval_ms, submit_wait_for_slots_ms, restart_drain_timeout_ms }`                                                    |
+| GET    | `/api/v1/jobs`                 | `{ jobs: JobSummary[] }`                                                                                                                                                           |
+| GET    | `/api/v1/jobs/:id`             | `JobDetail` (404 `{error}` if unknown)                                                                                                                                             |
+| GET    | `/api/v1/jobs/:id/graph`       | `JobGraphDetail` (logical topology: `nodes`, `edges`, `available`, `topology_version`)                                                                                             |
+| GET    | `/api/v1/jobs/:id/operators`   | `{ job_id, available, operators: OperatorRuntime[] }` per-operator runtime stats, aggregated across workers                                                                        |
+| GET    | `/api/v1/jobs/:id/lineage`     | `{ job_id, available, lineage: { sources, sinks, edges } }` external-dataset lineage (404 if unknown)                                                                              |
+| POST   | `/api/v1/jobs`                 | multipart: file part `job_so` (+ optional text `job_name`) → `{ ok, job_id, name }` or `{ error }`                                                                                 |
+| POST   | `/api/v1/jobs/spec`            | JSON body (JobGraphSpec), `?name=` plus the recovery parameters below → `{ ok, job_id, name }`                                                                                     |
+| POST   | `/api/v1/jobs/:id/cancel`      | `{ job_id, ok, message }` (404/409 on unknown/already-complete/in-progress)                                                                                                        |
+| POST   | `/api/v1/jobs/:id/savepoint`   | `?timeout_ms=` → `{ job_id, ok, checkpoint_id, checkpoint_dir, message }` (404/409 on failure)                                                                                     |
+| POST   | `/api/v1/jobs/:id/rescale`     | JSON body `{ "<role>": <parallelism>, ... }` (scale-up only) → `{ job_id, ok, message }`                                                                                           |
+| POST   | `/api/v1/jobs/sql`             | raw SQL body; `?mode=explain\|compile\|submit&parallelism&name` (+ the recovery parameters on submit) → `SqlResult` (400 body `{ok:false,error,position}` is returned, not thrown) |
+| GET    | `/api/v1/catalog`              | `{ tables: CatalogTable[] }` session catalog (tables/views registered via SQL DDL)                                                                                                 |
+| GET    | `/api/v1/connectors`           | `{ connectors: SqlConnector[] }` the `WITH(connector='...')` vocabulary, with availability and the declared capability records                                                     |
+| GET    | `/api/v1/workers`              | `{ workers: WorkerSummary[] }`                                                                                                                                                     |
+| GET    | `/api/v1/workers/:id/worker`   | `WorkerSnapshot` (proxied)                                                                                                                                                         |
+| GET    | `/api/v1/workers/:id/subtasks` | `{ subtasks: SubtaskRecord[] }` (proxied)                                                                                                                                          |
+| GET    | `/api/v1/workers/:id/config`   | `{ slot_count, heartbeat_interval_ms }` (proxied)                                                                                                                                  |
+| GET    | `/api/v1/workers/:id/metrics`  | Prometheus text (proxied)                                                                                                                                                          |
+| GET    | `/api/v1/workers/:id/logs`     | `{ logs: LogRecord[] }` (proxied)                                                                                                                                                  |
+| GET    | `/api/v1/logs`                 | `{ logs: LogRecord[] }`; `?level&limit&since_ms&source`                                                                                                                            |
+| GET    | `/api/v1/logs/components`      | `{ components: string[] }`                                                                                                                                                         |
+| GET    | `/metrics`                     | Prometheus exposition text (incl. system gauges, below)                                                                                                                            |
+| GET    | `/api/v1/events`               | SSE; event names `coordinator.worker_registered`, `coordinator.worker_lost`, `coordinator.job_submitted`, `coordinator.job_completed`                                              |
 
 Proxy routes return 404 if the worker is unknown/lost/has no HTTP listener, 502 if
 unreachable.
@@ -54,17 +54,28 @@ unreachable.
 ## Shapes
 
 ```
-WorkerSummary    { worker_id, data_host, slot_capacity, slots_in_use, lost, http_port }
+WorkerSummary    { worker_id, data_host, slot_capacity, slots_in_use, lost, http_port,
+                   protocol_version }                 // 0 = predates the field
 ClusterSnapshot { bind_host, advertise_host, control_port, total_slot_capacity,
                   slots_in_use, jobs_total, jobs_running, jobs_completed,
                   workers: WorkerSummary[] }
 JobSummary   { id, expected_completion, completed_count, completion_signalled,
-               cancel_requested, error_count }
+               cancel_requested, error_count,
+               status,                                 // RUNNING | COMPLETED_OK | FAILED | CANCELLED
+               delivery_guarantee, guarantee_limiting_factor }
 JobDetail    { id, expected_completion, completed_count, completion_signalled,
                cancel_requested, errors: string[],
                subtask_errors: { role, subtask_idx, worker_id, attempt, ts_ms, message }[],
                tasks: { role, subtask_idx, worker_id }[],
-               latest_completed_checkpoint_id, pending_checkpoint_ids: number[] }
+               latest_completed_checkpoint_id, pending_checkpoint_ids: number[],
+               status,
+               // the checkpoint configuration the job is RUNNING with
+               checkpoint_dir, checkpoint_interval_ms, state_backend_uri,
+               restore_from_dir, restore_from_checkpoint_id,
+               max_restarts_on_worker_loss, unaligned_checkpoints, adaptive_barrier_mode,
+               // the analyser's verdict at submit, and why
+               delivery_guarantee, guarantee_limiting_factor,
+               guarantee_reasons: string[], guarantee_warnings: string[] }
 WorkerSnapshot   { worker_id, data_host, slot_capacity, slots_in_use, coordinator_host, coordinator_port,
                active_subtasks }
 SubtaskRecord{ job_id, role, subtask_idx, status }   // status: "pending" | "ready"
@@ -78,9 +89,46 @@ LineageVertex{ id, uid, name, op_type, boundedness?, // boundedness on sources o
                                               inputs: { namespace, name, field }[] }[] }[] }
 ```
 
-There is no single job-status enum on the wire; the console derives
-running/completed/cancelled/failed from `error_count`/`errors`,
-`cancel_requested`, `completion_signalled` (`deriveJobState`).
+`status` is the coordinator's own verdict; `deriveJobState` uses it when
+present and reconstructs it from `error_count`/`errors`, `cancel_requested`
+and `completion_signalled` on a coordinator that predates the field.
+
+`delivery_guarantee` is the end-to-end level the coordinator's analyser
+computed when the job was submitted, the weakest link across source,
+checkpointing and sinks: `END_TO_END_EXACTLY_ONCE`,
+`EFFECTIVELY_ONCE_REQUIRES_IDEMPOTENT_KEY`,
+`STATE_EXACTLY_ONCE_OUTPUT_AT_LEAST_ONCE`, `AT_MOST_ONCE_SOURCE` or
+`NO_RECOVERY_GUARANTEE`. `guarantee_limiting_factor` names what caps it
+(`sink 'file_text_sink'`, `checkpointing disabled`; empty when nothing does).
+The detail's `guarantee_reasons` is the analyser's reasoning, one line per
+constraint, and `guarantee_warnings` what it could not verify. All of these,
+and the checkpoint configuration fields, are absent on a coordinator that
+predates them (clink 0.11.0 and earlier); the console shows a dash, never a
+guessed value.
+
+## Recovery parameters on submit
+
+`POST /api/v1/jobs/spec` and `POST /api/v1/jobs/sql?mode=submit` take the
+job's checkpoint configuration on the query string, parsed by the
+coordinator's `checkpoint_config_from_query`:
+
+```
+checkpoint_dir=<path>                 no checkpointing without it
+checkpoint_interval_ms=<n>
+state_backend=<uri>                   e.g. rocksdb:///var/lib/clink/state
+max_restarts_on_worker_loss=<n>
+alignment=aligned|unaligned|adaptive
+restore_from_dir=<path>  restore_from_checkpoint_id=<n>
+```
+
+An unset parameter keeps the coordinator's default; a malformed one (a
+negative or non-integer number, an unknown alignment) is refused with a 400
+rather than silently defaulted. Without a `checkpoint_dir` the job never
+checkpoints, so its exactly-once sinks never commit and a worker loss is not
+recoverable, which is why the console's recovery panel always states the
+consequence of the current choice. The plugin upload (`POST /api/v1/jobs`,
+multipart) takes none of these. The console serialises the values with
+`encodeURIComponent` so a `+` inside a backend URI survives.
 
 ## Backend follow-ups (now landed)
 
@@ -159,14 +207,32 @@ HTTP (it runs a local scan).
 
 ```
 GET /api/v1/catalog      -> { tables: [ { name, kind, connector?, columns:[{name,type}], primary_key?:[] } ] }
-GET /api/v1/connectors   -> { connectors: [ { name, source, sink, category } ] }
+GET /api/v1/connectors   -> { connectors: [ { name, source, sink, category,
+                                              available,                       // built into this coordinator
+                                              sink_delivery?, source_replayable, tls,
+                                              variants: [ { name, source, sink, delivery,
+                                                            transactional, commit_recoverable,
+                                                            replayable, offset_model,
+                                                            checkpoint_integrated, tls,
+                                                            available_in_sql } ] } ] }
 ```
 
 `/api/v1/catalog` is the session catalogue (drives the workbench browser +
-autocomplete); `/api/v1/connectors` is the `WITH (connector='...')` vocabulary
-(category + best-effort source/sink flags; a connector only works at submit if
-its impl is linked). The catalogue is in-memory unless the coordinator is started with
-`--sql-catalog-dir <dir>`.
+autocomplete). `/api/v1/connectors` is the `WITH (connector='...')` vocabulary
+(category + best-effort source/sink flags), and per entry what the running
+coordinator declares: `available` (the connector is linked into this binary;
+a submit using an unavailable one is refused), the capability records
+(`variants`) grouped under the entry by the longest-prefix rule the engine's
+delivery-guarantee gate uses (`kafka_2pc` under `kafka`, `s3_parquet_2pc`
+under `s3_parquet`), and three roll-ups: `sink_delivery` is the strongest
+delivery among its sink records (`at_most_once`, `at_least_once`,
+`effectively_once_idempotent`, `exactly_once_atomic_publish`,
+`exactly_once_two_phase_commit`, `no_durable_restart_guarantee`),
+`source_replayable` whether a source record replays from a recorded position,
+`tls` whether any record offers it. A connector-level delivery is what a
+connector CAN provide; the job's end-to-end `delivery_guarantee` is what a
+pipeline actually promises. The catalogue is in-memory unless the coordinator
+is started with `--sql-catalog-dir <dir>`.
 
 ## Metrics dashboards
 
@@ -180,3 +246,7 @@ searchable explorer stays at `/metrics`.
 - **Metrics are Prometheus text**, not JSON, and point-in-time (no server-side
   history) — the console parses them and keeps a short rolling history in-page.
 - **SSE has no backlog** on connect; the live feed starts from connection time.
+  The coordinator publishes four named events: `coordinator.worker_registered`,
+  `coordinator.job_submitted`, `coordinator.job_lineage` (the job's lineage
+  graph, shortly after the submit) and `coordinator.job_completed`. A lost
+  worker shows through the polled fleet views, not an event.

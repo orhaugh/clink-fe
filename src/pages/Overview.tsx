@@ -14,7 +14,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { ErrorState, LoadingState, EmptyState } from '@/components/States'
-import { JobStateBadge, WorkerStateBadge } from '@/components/StatusBadge'
+import { GuaranteeBadge, JobStateBadge, WorkerStateBadge } from '@/components/StatusBadge'
 import { deriveJobState } from '@/lib/types'
 import { fmtRelative, pct } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -182,6 +182,7 @@ export function Overview() {
                 <TableRow>
                   <TableHead>Job</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Guarantee</TableHead>
                   <TableHead>Progress</TableHead>
                   <TableHead>Errors</TableHead>
                 </TableRow>
@@ -196,6 +197,12 @@ export function Overview() {
                     </TableCell>
                     <TableCell>
                       <JobStateBadge state={deriveJobState(j)} />
+                    </TableCell>
+                    <TableCell>
+                      <GuaranteeBadge
+                        level={j.delivery_guarantee}
+                        limitingFactor={j.guarantee_limiting_factor}
+                      />
                     </TableCell>
                     <TableCell className="tabular-nums text-muted-foreground">
                       {j.completed_count}/{j.expected_completion}
