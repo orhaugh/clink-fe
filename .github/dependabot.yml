@@ -23,7 +23,7 @@ updates:
       # typescript 7 is outside typescript-eslint's supported range.
       - dependency-name: typescript
         update-types: ['version-update:semver-major']
-      # @types/node tracks the runtime matrix (Node 20/22), not latest.
+      # @types/node tracks the runtime matrix (Node 22/24), not latest.
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
   - package-ecosystem: github-actions
