@@ -22,12 +22,19 @@ export function SubmitJob() {
   const [spec, setSpec] = useState('')
   const [specName, setSpecName] = useState('')
   const [recovery, setRecovery] = useState<RecoveryOptions>({})
+  const [soRecovery, setSoRecovery] = useState<RecoveryOptions>({})
 
   const onSubmitSo = async () => {
     if (!file) return
-    const ack = await submitSo.mutateAsync({ file, name: soName || undefined })
+    const ack = await submitSo.mutateAsync({
+      file,
+      name: soName || undefined,
+      recovery: soRecovery,
+    })
     if (ack.ok && ack.job_id != null) {
-      toast.success(`Submitted job #${ack.job_id}`, { description: ack.name })
+      toast.success(`Submitted job #${ack.job_id}`, {
+        description: `${ack.name ?? ''} ${describeRecovery(soRecovery)}`.trim(),
+      })
       navigate(`/jobs/${ack.job_id}`)
     } else {
       toast.error('Submission rejected', { description: ack.error ?? 'unknown error' })
@@ -118,9 +125,11 @@ export function SubmitJob() {
                   onChange={(e) => setSoName(e.target.value)}
                 />
               </div>
+              <RecoveryOptionsFields value={soRecovery} onChange={setSoRecovery} idPrefix="so" />
               <p className="text-xs text-muted-foreground">
-                This upload carries no recovery options: the endpoint takes none, so the job runs
-                with the coordinator&apos;s defaults. The JSON spec and SQL paths accept them.
+                The recovery options ride the query string, as on the JSON spec and SQL paths. A
+                coordinator that predates them on this route ignores them and runs the job with its
+                defaults, so check the recovery card on the job after submitting.
               </p>
               <Button onClick={onSubmitSo} disabled={!file || submitSo.isPending}>
                 <Send className="h-4 w-4" />

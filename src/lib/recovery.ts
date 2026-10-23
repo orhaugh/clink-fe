@@ -1,14 +1,14 @@
 // Per-job recovery (checkpoint) options a submission can carry.
 //
-// POST /api/v1/jobs/spec and POST /api/v1/jobs/sql?mode=submit read them from
-// the query string (the coordinator's checkpoint_config_from_query). An unset
+// POST /api/v1/jobs (the plugin upload), POST /api/v1/jobs/spec and
+// POST /api/v1/jobs/sql?mode=submit read them from the query string (the
+// coordinator's checkpoint_config_from_query, one parser for all three). An unset
 // option keeps the coordinator's default; a malformed one is refused with a
 // 400 rather than silently defaulted, so the serialiser below only sends
 // values that are well formed. Without a checkpoint_dir a job never
 // checkpoints, so its exactly-once sinks never commit and a worker loss is
-// not recoverable: the console shows that consequence next to the form.
-//
-// The plugin-upload path (POST /api/v1/jobs, multipart) takes none of these.
+// not recoverable: the console shows that consequence next to the form. A
+// coordinator that predates the options on the upload route ignores them there.
 
 export type BarrierAlignment = 'aligned' | 'unaligned' | 'adaptive'
 

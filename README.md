@@ -107,9 +107,9 @@ the same engine version.
   category, with what the running coordinator declares for each: whether it
   is in this build, the strongest delivery its sink records offer, whether its
   sources replay, TLS, and the capability records themselves.
-- **Submit** - upload a compiled job `.so` (multipart) or post a JSON job spec
-  with its recovery options (checkpoint directory and interval, state backend,
-  restarts on worker loss, barrier alignment, restore source).
+- **Submit** - upload a compiled job `.so` (multipart) or post a JSON job spec,
+  each with its recovery options (checkpoint directory and interval, state
+  backend, restarts on worker loss, barrier alignment, restore source).
 - **Logs** - cluster-wide log explorer with level / source / since filters and
   follow mode, aggregating the coordinator and every Worker.
 - **Metrics** - purpose-built dashboards over the coordinator Prometheus feed
@@ -302,8 +302,9 @@ them), the recovery parameters on submit, and each job's checkpoint
 configuration and delivery guarantee are all served over HTTP; metrics remain
 Prometheus text. Fields a coordinator does not report (one older than the
 console) render as a dash rather than a guessed value: the guarantee, the
-recovery configuration and the connector capability records need a clink
-newer than 0.11.0; the job status and worker protocol version are older.
+recovery configuration, the connector capability records and the recovery
+options on the `.so` upload route need a clink newer than 0.11.0; the job
+status and worker protocol version are older.
 
 ## Build
 

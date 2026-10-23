@@ -5,12 +5,12 @@ import { qk } from './useApi'
 import type { ClinkEvent } from '@/lib/types'
 
 // Named SSE events the coordinator publishes (events::publish in
-// src/cluster/coordinator.cpp): a worker registering, a job submitted, its
-// lineage extracted (shortly after the submit), and a job completing. clink
-// sets the SSE `event:` field to the type, so we attach a listener per type
-// (EventSource has no wildcard) plus the default `message` channel as a
-// fallback. worker_lost is kept for a coordinator that adds it; today a lost
-// worker shows through the polled fleet views.
+// src/cluster/coordinator.cpp): a worker registering, a worker declared lost
+// (payload: worker_id and the cause, from the watchdog's loss handler), a job
+// submitted, its lineage extracted (shortly after the submit), and a job
+// completing. clink sets the SSE `event:` field to the type, so we attach a
+// listener per type (EventSource has no wildcard) plus the default `message`
+// channel as a fallback.
 export const EVENT_TYPES = [
   'coordinator.worker_registered',
   'coordinator.worker_lost',

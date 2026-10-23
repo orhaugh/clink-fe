@@ -242,6 +242,21 @@ describe('remaining GET routes', () => {
     expect((req!.body as FormData).get('job_name')).toBeNull()
   })
 
+  it('submitJobSo carries the recovery options on the query string like the other routes', async () => {
+    const fn = mockFetch(() => resp({ json: { ok: true, job_id: 4 } }))
+    await api.submitJobSo(new File(['x'], 'job.so'), 'demo', {
+      checkpoint_dir: '/var/lib/clink/ckpt',
+      checkpoint_interval_ms: 250,
+      alignment: 'unaligned',
+    })
+    const [url, req] = fn.mock.calls[0]
+    expect(url).toBe(
+      '/api/v1/jobs?checkpoint_dir=%2Fvar%2Flib%2Fclink%2Fckpt&checkpoint_interval_ms=250&alignment=unaligned',
+    )
+    expect(req!.method).toBe('POST')
+    expect((req!.body as FormData).get('job_name')).toBe('demo')
+  })
+
   it('submitSpec posts to the bare spec path when no name is given', async () => {
     const fn = mockFetch(() => resp({ json: { ok: true, job_id: 3 } }))
     await api.submitSpec('{}')

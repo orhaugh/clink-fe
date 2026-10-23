@@ -23,7 +23,7 @@ cross-origin deployment start the node with `--http-cors-origin=<origin>`.
 | GET    | `/api/v1/jobs/:id/graph`       | `JobGraphDetail` (logical topology: `nodes`, `edges`, `available`, `topology_version`)                                                                                             |
 | GET    | `/api/v1/jobs/:id/operators`   | `{ job_id, available, operators: OperatorRuntime[] }` per-operator runtime stats, aggregated across workers                                                                        |
 | GET    | `/api/v1/jobs/:id/lineage`     | `{ job_id, available, lineage: { sources, sinks, edges } }` external-dataset lineage (404 if unknown)                                                                              |
-| POST   | `/api/v1/jobs`                 | multipart: file part `job_so` (+ optional text `job_name`) → `{ ok, job_id, name }` or `{ error }`                                                                                 |
+| POST   | `/api/v1/jobs`                 | multipart: file part `job_so` (+ optional text `job_name`), `?name=` plus the recovery parameters below → `{ ok, job_id, name }` or `{ error }`                                    |
 | POST   | `/api/v1/jobs/spec`            | JSON body (JobGraphSpec), `?name=` plus the recovery parameters below → `{ ok, job_id, name }`                                                                                     |
 | POST   | `/api/v1/jobs/:id/cancel`      | `{ job_id, ok, message }` (404/409 on unknown/already-complete/in-progress)                                                                                                        |
 | POST   | `/api/v1/jobs/:id/savepoint`   | `?timeout_ms=` → `{ job_id, ok, checkpoint_id, checkpoint_dir, message }` (404/409 on failure)                                                                                     |
@@ -40,7 +40,7 @@ cross-origin deployment start the node with `--http-cors-origin=<origin>`.
 | GET    | `/api/v1/logs`                 | `{ logs: LogRecord[] }`; `?level&limit&since_ms&source`                                                                                                                            |
 | GET    | `/api/v1/logs/components`      | `{ components: string[] }`                                                                                                                                                         |
 | GET    | `/metrics`                     | Prometheus exposition text (incl. system gauges, below)                                                                                                                            |
-| GET    | `/api/v1/events`               | SSE; event names `coordinator.worker_registered`, `coordinator.worker_lost`, `coordinator.job_submitted`, `coordinator.job_completed`                                              |
+| GET    | `/api/v1/events`               | SSE; event names `coordinator.worker_registered`, `coordinator.worker_lost`, `coordinator.job_submitted`, `coordinator.job_lineage`, `coordinator.job_completed`                   |
 
 Proxy routes return 404 if the worker is unknown/lost/has no HTTP listener, 502 if
 unreachable.
@@ -108,9 +108,9 @@ guessed value.
 
 ## Recovery parameters on submit
 
-`POST /api/v1/jobs/spec` and `POST /api/v1/jobs/sql?mode=submit` take the
-job's checkpoint configuration on the query string, parsed by the
-coordinator's `checkpoint_config_from_query`:
+`POST /api/v1/jobs` (the plugin upload), `POST /api/v1/jobs/spec` and
+`POST /api/v1/jobs/sql?mode=submit` take the job's checkpoint configuration on
+the query string, parsed by the coordinator's `checkpoint_config_from_query`:
 
 ```
 checkpoint_dir=<path>                 no checkpointing without it
@@ -126,9 +126,11 @@ negative or non-integer number, an unknown alignment) is refused with a 400
 rather than silently defaulted. Without a `checkpoint_dir` the job never
 checkpoints, so its exactly-once sinks never commit and a worker loss is not
 recoverable, which is why the console's recovery panel always states the
-consequence of the current choice. The plugin upload (`POST /api/v1/jobs`,
-multipart) takes none of these. The console serialises the values with
-`encodeURIComponent` so a `+` inside a backend URI survives.
+consequence of the current choice. The plugin upload honours them from the
+clink change that added them to that route; an older coordinator ignores them
+there and runs the job with its defaults, which is why the console's upload
+form points at the job's recovery card. The console serialises the values
+with `encodeURIComponent` so a `+` inside a backend URI survives.
 
 ## Backend follow-ups (now landed)
 
@@ -246,7 +248,7 @@ searchable explorer stays at `/metrics`.
 - **Metrics are Prometheus text**, not JSON, and point-in-time (no server-side
   history) — the console parses them and keeps a short rolling history in-page.
 - **SSE has no backlog** on connect; the live feed starts from connection time.
-  The coordinator publishes four named events: `coordinator.worker_registered`,
-  `coordinator.job_submitted`, `coordinator.job_lineage` (the job's lineage
-  graph, shortly after the submit) and `coordinator.job_completed`. A lost
-  worker shows through the polled fleet views, not an event.
+  The coordinator publishes five named events: `coordinator.worker_registered`,
+  `coordinator.worker_lost` (payload `{worker_id, cause}`, from the watchdog's
+  loss handler), `coordinator.job_submitted`, `coordinator.job_lineage` (the
+  job's lineage graph, shortly after the submit) and `coordinator.job_completed`.

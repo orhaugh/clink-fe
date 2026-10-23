@@ -114,11 +114,21 @@ export const api = {
     })
     return (await res.json()) as RescaleAck
   },
-  submitJobSo: async (file: File, jobName?: string): Promise<SubmitAck> => {
+  // The recovery options ride the query string here as on the spec and SQL
+  // routes (the coordinator parses all three with the same function); a
+  // coordinator that predates them on this route ignores them.
+  submitJobSo: async (
+    file: File,
+    jobName?: string,
+    recovery?: RecoveryOptions,
+  ): Promise<SubmitAck> => {
     const fd = new FormData()
     fd.append('job_so', file)
     if (jobName) fd.append('job_name', jobName)
-    const res = await fetch('/api/v1/jobs', { method: 'POST', body: fd })
+    const p = new URLSearchParams()
+    appendRecoveryParams(p, recovery)
+    const qs = encodeQuery(p)
+    const res = await fetch(`/api/v1/jobs${qs ? `?${qs}` : ''}`, { method: 'POST', body: fd })
     return (await res.json()) as SubmitAck
   },
   // Recovery options ride the query string (checkpoint_dir, checkpoint_interval_ms,

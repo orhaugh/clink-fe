@@ -193,7 +193,15 @@ export function useRescaleJob() {
 export function useSubmitJobSo() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ file, name }: { file: File; name?: string }) => api.submitJobSo(file, name),
+    mutationFn: ({
+      file,
+      name,
+      recovery,
+    }: {
+      file: File
+      name?: string
+      recovery?: RecoveryOptions
+    }) => api.submitJobSo(file, name, recovery),
     onSuccess: () => void qc.invalidateQueries({ queryKey: qk.jobs }),
   })
 }
