@@ -50,6 +50,14 @@ export function fmtCount(n: number | undefined): string {
   return `${(n / 1_000_000).toFixed(2)}M`
 }
 
+// A records-per-second figure, which is fractional: whole numbers from 10 up,
+// and one decimal below that so a slow trickle does not read as zero.
+export function fmtRate(perSec: number | undefined): string {
+  if (perSec == null || !Number.isFinite(perSec)) return '-'
+  if (perSec > 0 && perSec < 10) return perSec.toFixed(1)
+  return fmtCount(Math.round(perSec))
+}
+
 export function fmtBytes(n: number | undefined): string {
   if (n == null) return '-'
   const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB']

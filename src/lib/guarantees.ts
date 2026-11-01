@@ -43,6 +43,12 @@ const JOB_LEVELS: Record<string, GuaranteeView> = {
       'State is exactly-once but the output path is not transactional, so a restart can repeat output.',
     tone: 'warn',
   },
+  AT_LEAST_ONCE_SOURCE: {
+    short: 'at-least-once source',
+    label:
+      'Nothing is lost, but the source keeps no position of its own: its broker delivers again whatever was not acknowledged at a checkpoint, so records can enter the job twice and state and output are at least once.',
+    tone: 'warn',
+  },
   AT_MOST_ONCE_SOURCE: {
     short: 'at-most-once',
     label:

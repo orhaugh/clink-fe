@@ -35,6 +35,9 @@ export interface ClusterSnapshot {
 
 export interface JobSummary {
   id: number
+  // The name the job was submitted with (a SQL job's ?name=, a compiled job's
+  // name). Empty for an unnamed job; absent on a coordinator that predates it.
+  name?: string
   expected_completion: number
   completed_count: number
   completion_signalled: boolean
@@ -69,6 +72,9 @@ export interface SubtaskErrorRecord {
 
 export interface JobDetail {
   id: number
+  // The name the job was submitted with (a SQL job's ?name=, a compiled job's
+  // name). Empty for an unnamed job; absent on a coordinator that predates it.
+  name?: string
   expected_completion: number
   completed_count: number
   completion_signalled: boolean

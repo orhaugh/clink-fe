@@ -59,11 +59,11 @@ WorkerSummary    { worker_id, data_host, slot_capacity, slots_in_use, lost, http
 ClusterSnapshot { bind_host, advertise_host, control_port, total_slot_capacity,
                   slots_in_use, jobs_total, jobs_running, jobs_completed,
                   workers: WorkerSummary[] }
-JobSummary   { id, expected_completion, completed_count, completion_signalled,
+JobSummary   { id, name?, expected_completion, completed_count, completion_signalled,
                cancel_requested, error_count,
                status,                                 // RUNNING | COMPLETED_OK | FAILED | CANCELLED
                delivery_guarantee, guarantee_limiting_factor }
-JobDetail    { id, expected_completion, completed_count, completion_signalled,
+JobDetail    { id, name?, expected_completion, completed_count, completion_signalled,
                cancel_requested, errors: string[],
                subtask_errors: { role, subtask_idx, worker_id, attempt, ts_ms, message }[],
                tasks: { role, subtask_idx, worker_id }[],
@@ -89,6 +89,15 @@ LineageVertex{ id, uid, name, op_type, boundedness?, // boundedness on sources o
                                               inputs: { namespace, name, field }[] }[] }[] }
 ```
 
+`name` is the name the job was submitted with (a SQL job's `?name=`, a plugin
+upload's `job_name`, a spec's `name`), empty for an unnamed job and absent on a
+coordinator that predates it; the console shows it beside the job's number.
+
+Progress: the coordinator counts finished subtasks against the job's total,
+which reaches 100% only for a job whose input ends. A running job whose lineage
+has a source with `boundedness: "unbounded"` is shown as streaming instead
+(`lib/progress.ts`); an unknown boundedness keeps the share.
+
 `status` is the coordinator's own verdict; `deriveJobState` uses it when
 present and reconstructs it from `error_count`/`errors`, `cancel_requested`
 and `completion_signalled` on a coordinator that predates the field.
@@ -97,7 +106,9 @@ and `completion_signalled` on a coordinator that predates the field.
 computed when the job was submitted, the weakest link across source,
 checkpointing and sinks: `END_TO_END_EXACTLY_ONCE`,
 `EFFECTIVELY_ONCE_REQUIRES_IDEMPOTENT_KEY`,
-`STATE_EXACTLY_ONCE_OUTPUT_AT_LEAST_ONCE`, `AT_MOST_ONCE_SOURCE` or
+`STATE_EXACTLY_ONCE_OUTPUT_AT_LEAST_ONCE`, `AT_LEAST_ONCE_SOURCE` (a source that
+keeps no position and is redelivered what it did not acknowledge),
+`AT_MOST_ONCE_SOURCE` or
 `NO_RECOVERY_GUARANTEE`. `guarantee_limiting_factor` names what caps it
 (`sink 'file_text_sink'`, `checkpointing disabled`; empty when nothing does).
 The detail's `guarantee_reasons` is the analyser's reasoning, one line per

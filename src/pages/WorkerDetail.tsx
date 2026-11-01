@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import {
+  useJobs,
   useWorker,
   useWorkerConfig,
   useWorkerLogs,
@@ -21,6 +22,7 @@ import {
 } from '@/components/ui/table'
 import { ErrorState, LoadingState, EmptyState } from '@/components/States'
 import { SubtaskStatusBadge } from '@/components/StatusBadge'
+import { JobLink } from '@/components/JobLink'
 import { LogViewer } from '@/components/LogViewer'
 import { MetricsPanel } from '@/components/MetricsPanel'
 import { fmtMs } from '@/lib/format'
@@ -32,6 +34,9 @@ export function WorkerDetail() {
   const config = useWorkerConfig(id)
   const metrics = useWorkerMetricsText(id)
   const logs = useWorkerLogs(id, { level: 'debug', limit: 400 })
+  // The subtask list carries job ids only; the jobs list has their names.
+  const jobs = useJobs()
+  const jobNames = new Map((jobs.data ?? []).map((j) => [j.id, j.name]))
 
   return (
     <div className="space-y-6">
@@ -104,12 +109,7 @@ export function WorkerDetail() {
                         {subtasks.data.map((s, i) => (
                           <TableRow key={i}>
                             <TableCell>
-                              <Link
-                                to={`/jobs/${s.job_id}`}
-                                className="font-mono text-primary hover:underline"
-                              >
-                                #{s.job_id}
-                              </Link>
+                              <JobLink id={s.job_id} name={jobNames.get(s.job_id)} />
                             </TableCell>
                             <TableCell className="font-mono text-xs">{s.role}</TableCell>
                             <TableCell className="tabular-nums">{s.subtask_idx}</TableCell>

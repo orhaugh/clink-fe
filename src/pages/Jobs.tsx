@@ -14,8 +14,9 @@ import {
 } from '@/components/ui/table'
 import { ErrorState, LoadingState, EmptyState } from '@/components/States'
 import { GuaranteeBadge, JobStateBadge } from '@/components/StatusBadge'
+import { JobLink } from '@/components/JobLink'
+import { JobProgressBar } from '@/components/JobProgress'
 import { deriveJobState } from '@/lib/types'
-import { pct } from '@/lib/format'
 
 export function Jobs() {
   const jobs = useJobs()
@@ -60,17 +61,10 @@ export function Jobs() {
               </TableHeader>
               <TableBody>
                 {sorted.map((j) => {
-                  const progress =
-                    j.expected_completion > 0 ? pct(j.completed_count, j.expected_completion) : 0
                   return (
                     <TableRow key={j.id}>
                       <TableCell>
-                        <Link
-                          to={`/jobs/${j.id}`}
-                          className="font-mono text-primary hover:underline"
-                        >
-                          #{j.id}
-                        </Link>
+                        <JobLink id={j.id} name={j.name} />
                       </TableCell>
                       <TableCell>
                         <JobStateBadge state={deriveJobState(j)} />
@@ -82,17 +76,7 @@ export function Jobs() {
                         />
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
-                            <div
-                              className="h-full rounded-full bg-primary"
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                          <span className="text-xs tabular-nums text-muted-foreground">
-                            {progress}%
-                          </span>
-                        </div>
+                        <JobProgressBar job={j} />
                       </TableCell>
                       <TableCell className="tabular-nums text-muted-foreground">
                         {j.completed_count}/{j.expected_completion}

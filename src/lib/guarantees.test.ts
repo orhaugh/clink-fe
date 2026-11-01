@@ -11,6 +11,7 @@ describe('describeJobGuarantee', () => {
     ['END_TO_END_EXACTLY_ONCE', 'exactly-once', 'ok'],
     ['EFFECTIVELY_ONCE_REQUIRES_IDEMPOTENT_KEY', 'effectively-once', 'info'],
     ['STATE_EXACTLY_ONCE_OUTPUT_AT_LEAST_ONCE', 'at-least-once output', 'warn'],
+    ['AT_LEAST_ONCE_SOURCE', 'at-least-once source', 'warn'],
     ['AT_MOST_ONCE_SOURCE', 'at-most-once', 'danger'],
     ['NO_RECOVERY_GUARANTEE', 'no recovery', 'warn'],
   ])('%s renders as "%s" (%s)', (level, short, tone) => {

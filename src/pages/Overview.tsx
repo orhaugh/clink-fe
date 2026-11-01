@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/table'
 import { ErrorState, LoadingState, EmptyState } from '@/components/States'
 import { GuaranteeBadge, JobStateBadge, WorkerStateBadge } from '@/components/StatusBadge'
+import { JobLink } from '@/components/JobLink'
+import { JobProgressText } from '@/components/JobProgress'
 import { deriveJobState } from '@/lib/types'
 import { fmtRelative, pct } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -191,9 +193,7 @@ export function Overview() {
                 {recentJobs.map((j) => (
                   <TableRow key={j.id}>
                     <TableCell>
-                      <Link to={`/jobs/${j.id}`} className="font-mono text-primary hover:underline">
-                        #{j.id}
-                      </Link>
+                      <JobLink id={j.id} name={j.name} />
                     </TableCell>
                     <TableCell>
                       <JobStateBadge state={deriveJobState(j)} />
@@ -205,7 +205,7 @@ export function Overview() {
                       />
                     </TableCell>
                     <TableCell className="tabular-nums text-muted-foreground">
-                      {j.completed_count}/{j.expected_completion}
+                      <JobProgressText job={j} />
                     </TableCell>
                     <TableCell
                       className={j.error_count > 0 ? 'text-danger' : 'text-muted-foreground'}

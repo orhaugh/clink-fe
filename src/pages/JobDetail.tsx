@@ -12,6 +12,7 @@ import {
 import {
   useJob,
   useJobGraph,
+  useJobLineage,
   useJobOperators,
   useCancelJob,
   useRescaleJob,
@@ -23,6 +24,7 @@ import { RecoveryCard } from '@/components/RecoveryCard'
 import { OperatorDetail } from '@/components/OperatorDetail'
 import { useOperatorRates } from '@/hooks/useOperatorRates'
 import { describeJobGuarantee } from '@/lib/guarantees'
+import { STREAMING_HINT, jobProgress } from '@/lib/progress'
 import type { OperatorRuntime } from '@/lib/types'
 
 // Lazy so React Flow + dagre (their own chunk) only load when a job's graph is
@@ -57,19 +59,21 @@ import { ErrorState, LoadingState, EmptyState } from '@/components/States'
 import { JobStateBadge } from '@/components/StatusBadge'
 import { toast } from '@/components/ui/sonner'
 import { deriveJobState, type JobDetail as JobDetailT } from '@/lib/types'
-import { fmtDateTime, pct } from '@/lib/format'
+import { fmtDateTime } from '@/lib/format'
 
 export function JobDetail() {
   const { id = '0' } = useParams()
   const jobId = Number(id)
   const job = useJob(jobId)
+  // Shared with the lineage and endpoint panels below: one request per job.
+  const lineage = useJobLineage(jobId)
 
   if (job.isError) return <ErrorState error={job.error} />
   if (job.isLoading || !job.data) return <LoadingState />
 
   const j = job.data
   const state = deriveJobState(j)
-  const progress = j.expected_completion > 0 ? pct(j.completed_count, j.expected_completion) : 0
+  const progress = jobProgress(j, lineage.data)
   const guarantee = describeJobGuarantee(j.delivery_guarantee)
 
   return (
@@ -81,6 +85,7 @@ export function JobDetail() {
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <span className="font-mono">Job #{j.id}</span>
+            {j.name ? <span className="text-muted-foreground">{j.name}</span> : null}
             <JobStateBadge state={state} />
           </span>
         }
@@ -90,8 +95,18 @@ export function JobDetail() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <StatCard
           label="Progress"
-          value={`${progress}%`}
-          sub={`${j.completed_count}/${j.expected_completion} subtasks`}
+          value={
+            progress.kind === 'streaming' ? (
+              <span title={STREAMING_HINT}>streaming</span>
+            ) : (
+              `${progress.pct}%`
+            )
+          }
+          sub={
+            progress.kind === 'streaming'
+              ? 'runs until it is stopped'
+              : `${progress.done}/${progress.total} subtasks`
+          }
           tone="info"
         />
         <StatCard label="Subtasks" value={j.tasks.length} />

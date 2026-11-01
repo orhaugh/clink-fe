@@ -14,7 +14,7 @@ import {
 import { DeliveryBadge } from '@/components/StatusBadge'
 import { EmptyState } from '@/components/States'
 import { datasetLabel, endpointRows, type EndpointRow } from '@/lib/endpoints'
-import { fmtCount, fmtTime } from '@/lib/format'
+import { fmtCount, fmtRate, fmtTime } from '@/lib/format'
 import type { OperatorRuntime } from '@/lib/types'
 
 // The job's sources and sinks in one table: the connector each one was built
@@ -146,11 +146,7 @@ function EndpointTableRow({ row, rate }: { row: EndpointRow; rate?: { in: number
         {total != null ? fmtCount(total) : <span className="text-muted-foreground">-</span>}
       </TableCell>
       <TableCell className="text-right font-mono text-xs tabular-nums">
-        {perSec != null ? (
-          `${fmtCount(Math.round(perSec))}/s`
-        ) : (
-          <span className="text-muted-foreground">-</span>
-        )}
+        {perSec != null ? `${fmtRate(perSec)}/s` : <span className="text-muted-foreground">-</span>}
       </TableCell>
       <TableCell className="font-mono text-xs">
         <Watermark stats={row.stats} />

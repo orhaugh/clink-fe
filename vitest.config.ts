@@ -42,6 +42,7 @@ export default defineConfig({
         'src/lib/recovery.ts': { statements: 100, branches: 95, functions: 100, lines: 100 },
         'src/lib/endpoints.ts': { statements: 100, branches: 95, functions: 100, lines: 100 },
         'src/lib/fleet.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
+        'src/lib/progress.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
       },
     },
   },

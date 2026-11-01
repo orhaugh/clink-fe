@@ -24,7 +24,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { fmtCount } from '@/lib/format'
+import { fmtCount, fmtRate } from '@/lib/format'
 import type { GraphEdge, GraphNode, JobGraphDetail, OperatorRuntime } from '@/lib/types'
 import type { OpRate } from '@/hooks/useOperatorRates'
 
@@ -99,12 +99,12 @@ function OperatorNode({ data }: NodeProps) {
           <>
             {node.kind !== 'source' && (
               <span className="text-info" title="records in / sec">
-                ▸{rate ? fmtCount(rate.in) : '0'}/s
+                ▸{rate ? fmtRate(rate.in) : '0'}/s
               </span>
             )}
             {node.kind !== 'sink' && (
               <span className="text-ok" title="records out / sec">
-                {rate ? fmtCount(rate.out) : '0'}/s▸
+                {rate ? fmtRate(rate.out) : '0'}/s▸
               </span>
             )}
             {cap > 0 && (
