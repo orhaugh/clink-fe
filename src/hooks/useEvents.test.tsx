@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { useEvents } from './useEvents'
+import { setAuthToken } from '@/lib/auth'
 import { qk } from './useApi'
 
 // jsdom has no EventSource; a controllable mock lets tests drive open/error and
@@ -45,6 +46,8 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
+  vi.useRealTimers()
+  sessionStorage.clear()
 })
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -135,5 +138,90 @@ describe('useEvents', () => {
     expect(source.closed).toBe(false)
     unmount()
     expect(source.closed).toBe(true)
+  })
+})
+
+// A cluster started with CLINK_AUTH_TOKEN refuses the stream without the token,
+// and EventSource cannot send it, so with a token the hook reads the stream
+// through fetch.
+describe('useEvents with a token', () => {
+  const body = (...chunks: string[]) =>
+    new ReadableStream<Uint8Array>({
+      start(c) {
+        for (const chunk of chunks) c.enqueue(new TextEncoder().encode(chunk))
+        c.close()
+      },
+    })
+  const reply = (status: number, chunks: string[] = []) =>
+    ({ status, ok: status >= 200 && status < 300, body: body(...chunks) }) as unknown as Response
+
+  it('reads the stream through fetch, carrying the token, and opens no EventSource', async () => {
+    setAuthToken('s3cret')
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        reply(200, ['event: coordinator.job_submitted\ndata: {"job_id":1}\n\n']),
+      )
+      .mockReturnValue(new Promise(() => {}))
+    vi.stubGlobal('fetch', fetchMock)
+    const { result, unmount } = renderHook(() => useEvents(), { wrapper })
+    await waitFor(() => expect(result.current.events).toHaveLength(1))
+    expect(result.current.events[0]).toMatchObject({
+      type: 'coordinator.job_submitted',
+      data: '{"job_id":1}',
+    })
+    const [path, init] = fetchMock.mock.calls[0]
+    expect(path).toBe('/api/v1/events')
+    expect(init.headers).toMatchObject({ authorization: 'Bearer s3cret' })
+    expect(MockEventSource.instances).toHaveLength(0)
+    expect(qc.invalidateQueries).toHaveBeenCalledWith({ queryKey: qk.jobs })
+    unmount()
+    expect(init.signal.aborted).toBe(true)
+  })
+
+  it('stops, reported closed, when the token is refused', async () => {
+    setAuthToken('wrong')
+    const fetchMock = vi.fn().mockResolvedValue(reply(401))
+    vi.stubGlobal('fetch', fetchMock)
+    const { result } = renderHook(() => useEvents(), { wrapper })
+    await waitFor(() => expect(result.current.state).toBe('closed'))
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('reconnects after the stream ends or a request fails, backing off', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    setAuthToken('s3cret')
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(reply(200))
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockResolvedValueOnce(reply(503))
+      .mockReturnValue(new Promise(() => {}))
+    vi.stubGlobal('fetch', fetchMock)
+    const { result } = renderHook(() => useEvents(), { wrapper })
+    await waitFor(() => expect(result.current.state).toBe('connecting'))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000)
+    })
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4000)
+    })
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4))
+  })
+
+  it('reconnects with the token once one is set', async () => {
+    const fetchMock = vi.fn().mockReturnValue(new Promise(() => {}))
+    vi.stubGlobal('fetch', fetchMock)
+    renderHook(() => useEvents(), { wrapper })
+    const first = es()
+    expect(fetchMock).not.toHaveBeenCalled()
+    act(() => setAuthToken('s3cret'))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+    expect(first.closed).toBe(true)
   })
 })

@@ -15,10 +15,13 @@ Built with React + TypeScript + Vite + Tailwind + shadcn-style components, in a
 dark ops theme. It talks only to clink's existing HTTP API; there is no separate
 backend.
 
-**Requires a running clink cluster.** The console is a pure frontend for
-[clink's](https://github.com/orhaugh/clink) coordinator HTTP API (clink v0.1.0
-or later); nothing works without one. Build or download clink from its
-repository, then follow the steps below.
+**Ships inside clink.** From clink 0.14.0 every clink release carries this
+console, and a Coordinator serves it at `/` on its HTTP port, so most people
+never install it separately: open `http://<coordinator>:8081`, or start
+clink's [quickstart](https://github.com/orhaugh/clink/tree/main/examples/quickstart).
+This repository is where the console is developed and released; clink pins
+a release of it. The console is a pure frontend for clink's coordinator HTTP
+API, so the steps below need a running clink cluster.
 
 ## Running
 
@@ -55,10 +58,16 @@ enabling CORS on the node:
 clink_node --role=coordinator --port=7070 --http-port=8081 --http-cors-origin='*'
 ```
 
-## Production: served by the coordinator, or the published image
+## Production: inside every clink release
 
-From clink v0.4.0 the coordinator serves a built console same-origin - one
-port carries both the UI and the JSON API, no web server and no CORS setup:
+Each tag here publishes the built console as a release asset,
+`clink-console-vX.Y.Z.tar.gz` with its `.sha256`, from
+[`release.yml`](.github/workflows/release.yml). clink pins one of them (the
+version and the checksum, in its `scripts/console.env`), installs it at
+`share/clink/console` in its SDK tarball and its runtime image, and a
+Coordinator with an HTTP port serves it beside the JSON API: one port, no
+web server, no CORS setup. `--http-static-dir=<dir>` on the Coordinator serves
+a different build instead, for example this repository's `dist/`:
 
 ```bash
 npm run build
@@ -66,20 +75,16 @@ clink_node --role=coordinator --port=7070 --http-port=8081 --http-static-dir=$PW
 open http://localhost:8081
 ```
 
-The same pairing ships prebuilt as **`ghcr.io/orhaugh/clink-console`**
-(linux/amd64): this console on a pinned clink runtime, tagged
-`<console-version>-clink<engine-version>` plus `latest`, built and
-smoke-tested by [`console-image.yml`](.github/workflows/console-image.yml)
-on every release tag.
+`--no-console` serves none. A Coordinator started with `CLINK_AUTH_TOKEN`
+serves the console's own files without the token, since they hold no cluster
+data; the console asks for the token on the first request the API refuses,
+keeps it for the browser tab only, and sends it on every request, the live
+event stream included. The sidebar shows the console's version beside the
+engine's.
 
-```bash
-docker run -p 8081:8081 ghcr.io/orhaugh/clink-console:latest
-open http://localhost:8081          # console + API, one origin
-```
-
-The default command runs a single coordinator; for a real cluster, compose
-it as the coordinator alongside `ghcr.io/orhaugh/clink-runtime` workers of
-the same engine version.
+The `ghcr.io/orhaugh/clink-console` image this repository used to publish is
+retired: it paired the console with clink 0.4.0 and was rebuilt only when the
+console was released, never when clink was.
 
 ## What it shows
 

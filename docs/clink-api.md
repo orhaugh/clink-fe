@@ -56,7 +56,7 @@ unreachable.
 ```
 WorkerSummary    { worker_id, data_host, slot_capacity, slots_in_use, lost, http_port,
                    protocol_version }                 // 0 = predates the field
-ClusterSnapshot { bind_host, advertise_host, control_port, total_slot_capacity,
+ClusterSnapshot { version?, bind_host, advertise_host, control_port, total_slot_capacity,
                   slots_in_use, jobs_total, jobs_running, jobs_completed,
                   workers: WorkerSummary[] }
 JobSummary   { id, name?, expected_completion, completed_count, completion_signalled,
@@ -161,6 +161,16 @@ These were previously gaps; the clink backend now supports them:
 - **CORS.** Start the node with `--http-cors-origin=<origin>` (e.g. `*`) to send
   `Access-Control-Allow-*` and answer OPTIONS preflight, so a standalone console
   can call the API cross-origin without the dev proxy.
+- **Engine version.** `GET /api/v1/cluster` carries `version`, the engine's
+  release (clink 0.14.0 on); the sidebar shows it beside the console's own.
+- **Token.** A node started with `CLINK_AUTH_TOKEN` answers every API request
+  without `Authorization: Bearer <token>` with 401. A Coordinator serves a
+  mounted console's own files without it (they hold no cluster data). The
+  console asks for the token on the first 401 (`ErrorState` renders
+  `TokenForm`), keeps it in `sessionStorage` for the tab, and sends it on every
+  request through `lib/auth.ts`. `EventSource` cannot send a header, so with a
+  token set `useEvents` reads `/api/v1/events` through fetch (`lib/sse.ts`) and
+  reconnects with a back-off; without one it keeps `EventSource`.
 
 ## System metrics
 

@@ -11,7 +11,11 @@ import {
   UploadCloud,
   Workflow,
 } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
+import { useCluster } from '@/hooks/useApi'
+import { useAuthToken } from '@/hooks/useAuthToken'
+import { setAuthToken } from '@/lib/auth'
 
 const nav = [
   { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -26,6 +30,9 @@ const nav = [
 ]
 
 export function Sidebar() {
+  const qc = useQueryClient()
+  const cluster = useCluster()
+  const token = useAuthToken()
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-card/40">
       <div className="flex h-14 items-center gap-2 border-b border-border px-5">
@@ -54,8 +61,24 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="border-t border-border p-4 text-xs text-muted-foreground">
-        Arrow-native stream engine
+      <div className="space-y-1 border-t border-border p-4 text-xs text-muted-foreground">
+        <div>Arrow-native stream engine</div>
+        <div className="font-mono">
+          console v{__CONSOLE_VERSION__}
+          {cluster.data?.version ? ` · clink v${cluster.data.version}` : null}
+        </div>
+        {token ? (
+          <button
+            type="button"
+            className="text-primary hover:underline"
+            onClick={() => {
+              setAuthToken('')
+              void qc.invalidateQueries()
+            }}
+          >
+            Forget token
+          </button>
+        ) : null}
       </div>
     </aside>
   )

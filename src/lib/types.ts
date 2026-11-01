@@ -22,6 +22,8 @@ export interface WorkerSummary {
 }
 
 export interface ClusterSnapshot {
+  // The engine's version (clink 0.14.0 on); absent on an older coordinator.
+  version?: string
   bind_host: string
   advertise_host: string
   control_port: number

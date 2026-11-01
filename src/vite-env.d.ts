@@ -6,3 +6,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+// The console's version, injected from package.json by vite.config.ts.
+declare const __CONSOLE_VERSION__: string

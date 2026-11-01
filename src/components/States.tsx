@@ -1,5 +1,7 @@
 import { AlertTriangle, Inbox, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ApiError } from '@/lib/api'
+import { TokenForm } from '@/components/TokenForm'
 
 export function LoadingState({
   className,
@@ -22,6 +24,9 @@ export function LoadingState({
 }
 
 export function ErrorState({ error, className }: { error: unknown; className?: string }) {
+  // A cluster started with CLINK_AUTH_TOKEN answers 401 until the console
+  // sends the token: ask for it rather than reporting a failure.
+  if (error instanceof ApiError && error.status === 401) return <TokenForm />
   const msg = error instanceof Error ? error.message : String(error)
   return (
     <div

@@ -1,0 +1,61 @@
+# Publishes the console on every release tag, as the asset clink ships it from:
+# clink-console-vX.Y.Z.tar.gz (the built bundle under a clink-console-vX.Y.Z/
+# directory) and its .sha256. clink pins a console version and that checksum in
+# its scripts/console.env and installs the bundle at share/clink/console in
+# its SDK and runtime image, where a Coordinator serves it; this workflow is
+# the bundle's only producer.
+#
+# The archive is reproducible (sorted names, a fixed mtime and owner, gzip
+# without a timestamp), so the checksum clink pins names the content, not the
+# moment it was packed.
+
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  console-bundle:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: The tag names package.json's version
+        run: test "v$(node -p 'require("./package.json").version')" = "${GITHUB_REF_NAME}"
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Pack the bundle
+        run: |
+          set -euo pipefail
+          name="clink-console-${GITHUB_REF_NAME}"
+          mkdir -p "out/${name}"
+          cp -R dist/. "out/${name}/"
+          test -f "out/${name}/index.html"
+          tar --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner \
+              -C out -cf - "${name}" | gzip -n -9 > "${name}.tar.gz"
+          sha256sum "${name}.tar.gz" > "${name}.tar.gz.sha256"
+          cat "${name}.tar.gz.sha256"
+
+      - name: Attach it to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          name="clink-console-${GITHUB_REF_NAME}"
+          gh release view "${GITHUB_REF_NAME}" > /dev/null 2>&1 \
+            || gh release create "${GITHUB_REF_NAME}" --verify-tag \
+                 --title "clink-fe ${GITHUB_REF_NAME}" \
+                 --notes "The clink ops console. clink ships it inside its releases; this asset is the bundle it pins."
+          gh release upload "${GITHUB_REF_NAME}" "${name}.tar.gz" "${name}.tar.gz.sha256" --clobber

@@ -27,6 +27,13 @@ import type {
   WorkerSummary,
 } from './types'
 import { appendRecoveryParams, type RecoveryOptions } from './recovery'
+import { withAuth } from './auth'
+
+// Every request carries the token a cluster asked for, once one is set; without
+// one the request is exactly what it was.
+function apiFetch(input: string, init?: RequestInit): Promise<Response> {
+  return fetch(input, withAuth(init))
+}
 
 export class ApiError extends Error {
   constructor(
@@ -39,7 +46,7 @@ export class ApiError extends Error {
 }
 
 async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const res = await fetch(path, { signal, headers: { accept: 'application/json' } })
+  const res = await apiFetch(path, { signal, headers: { accept: 'application/json' } })
   if (!res.ok) {
     let msg = `${res.status} ${res.statusText}`
     try {
@@ -54,7 +61,7 @@ async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
 }
 
 async function getText(path: string, signal?: AbortSignal): Promise<string> {
-  const res = await fetch(path, { signal })
+  const res = await apiFetch(path, { signal })
   if (!res.ok) throw new ApiError(res.status, `${res.status} ${res.statusText}`)
   return res.text()
 }
@@ -98,16 +105,16 @@ export const api = {
     getJson<JobOperators>(`/api/v1/jobs/${id}/operators`, s),
   jobLineage: (id: number, s?: AbortSignal) => getJson<JobLineage>(`/api/v1/jobs/${id}/lineage`, s),
   cancelJob: async (id: number): Promise<CancelAck> => {
-    const res = await fetch(`/api/v1/jobs/${id}/cancel`, { method: 'POST' })
+    const res = await apiFetch(`/api/v1/jobs/${id}/cancel`, { method: 'POST' })
     return (await res.json()) as CancelAck
   },
   savepointJob: async (id: number, timeoutMs?: number): Promise<SavepointAck> => {
     const qs = timeoutMs != null ? `?timeout_ms=${timeoutMs}` : ''
-    const res = await fetch(`/api/v1/jobs/${id}/savepoint${qs}`, { method: 'POST' })
+    const res = await apiFetch(`/api/v1/jobs/${id}/savepoint${qs}`, { method: 'POST' })
     return (await res.json()) as SavepointAck
   },
   rescaleJob: async (id: number, roleParallelism: Record<string, number>): Promise<RescaleAck> => {
-    const res = await fetch(`/api/v1/jobs/${id}/rescale`, {
+    const res = await apiFetch(`/api/v1/jobs/${id}/rescale`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(roleParallelism),
@@ -128,7 +135,7 @@ export const api = {
     const p = new URLSearchParams()
     appendRecoveryParams(p, recovery)
     const qs = encodeQuery(p)
-    const res = await fetch(`/api/v1/jobs${qs ? `?${qs}` : ''}`, { method: 'POST', body: fd })
+    const res = await apiFetch(`/api/v1/jobs${qs ? `?${qs}` : ''}`, { method: 'POST', body: fd })
     return (await res.json()) as SubmitAck
   },
   // Recovery options ride the query string (checkpoint_dir, checkpoint_interval_ms,
@@ -143,7 +150,7 @@ export const api = {
     if (name) p.set('name', name)
     appendRecoveryParams(p, recovery)
     const qs = encodeQuery(p)
-    const res = await fetch(`/api/v1/jobs/spec${qs ? `?${qs}` : ''}`, {
+    const res = await apiFetch(`/api/v1/jobs/spec${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: specJson,
@@ -196,7 +203,7 @@ export const api = {
     if (mode === 'submit') appendRecoveryParams(p, opts.recovery)
     let res: Response
     try {
-      res = await fetch(`/api/v1/jobs/sql?${encodeQuery(p)}`, {
+      res = await apiFetch(`/api/v1/jobs/sql?${encodeQuery(p)}`, {
         method: 'POST',
         headers: { 'content-type': 'text/plain' },
         body: sql,
