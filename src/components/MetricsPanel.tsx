@@ -14,9 +14,19 @@ interface MetricsPanelProps {
   isLoading: boolean
   isError: boolean
   error?: unknown
+  // Whose /metrics this is. Checkpoints are counted by the coordinator, and a
+  // worker's registry carries the same families at 0, so a worker's panel
+  // leaves the checkpoint cards out rather than show zeros that look real.
+  scope?: 'coordinator' | 'worker'
 }
 
-export function MetricsPanel({ text, isLoading, isError, error }: MetricsPanelProps) {
+export function MetricsPanel({
+  text,
+  isLoading,
+  isError,
+  error,
+  scope = 'coordinator',
+}: MetricsPanelProps) {
   const [q, setQ] = useState('')
   const view = useMemo(() => (text ? toView(text) : undefined), [text])
 
@@ -34,25 +44,25 @@ export function MetricsPanel({ text, isLoading, isError, error }: MetricsPanelPr
       label: 'Checkpoints completed',
       value: fmtCount(ckptDone),
       tone: 'ok',
-      show: ckptDone != null,
+      show: scope === 'coordinator' && ckptDone != null,
     },
     {
       label: 'Checkpoints failed',
       value: fmtCount(ckptFailed),
       tone: ckptFailed ? 'danger' : 'default',
-      show: ckptFailed != null,
+      show: scope === 'coordinator' && ckptFailed != null,
     },
     {
       label: 'Checkpoints triggered',
       value: fmtCount(ckptTriggered),
       tone: 'info',
-      show: ckptTriggered != null,
+      show: scope === 'coordinator' && ckptTriggered != null,
     },
     {
       label: 'Avg checkpoint',
       value: ckptAvgMs != null ? fmtMs(ckptAvgMs) : '-',
       tone: 'default',
-      show: ckptAvgMs != null,
+      show: scope === 'coordinator' && ckptAvgMs != null,
     },
   ]
   const cards = allCards.filter((c) => c.show)

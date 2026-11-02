@@ -52,6 +52,7 @@ export default defineConfig({
         'src/lib/auth.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
         'src/lib/sse.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
         'src/lib/connection.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
+        'src/lib/roles.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
       },
     },
   },

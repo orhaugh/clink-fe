@@ -60,6 +60,7 @@ import { JobStateBadge } from '@/components/StatusBadge'
 import { toast } from '@/components/ui/sonner'
 import { deriveJobState, type JobDetail as JobDetailT } from '@/lib/types'
 import { fmtDateTime } from '@/lib/format'
+import { roleHint, roleLabel } from '@/lib/roles'
 
 export function JobDetail() {
   const { id = '0' } = useParams()
@@ -169,7 +170,9 @@ export function JobDetail() {
               <TableBody>
                 {j.tasks.map((t, i) => (
                   <TableRow key={i}>
-                    <TableCell className="font-mono text-xs">{t.role}</TableCell>
+                    <TableCell className="font-mono text-xs" title={roleHint(t.role)}>
+                      {roleLabel(t.role)}
+                    </TableCell>
                     <TableCell className="tabular-nums">{t.subtask_idx}</TableCell>
                     <TableCell>
                       {t.worker_id ? (
@@ -429,7 +432,7 @@ function FailuresPanel({ job }: { job: JobDetailT }) {
               <div key={i} className="rounded-md border border-danger/30 bg-danger/[0.05]">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-danger/20 px-3 py-2 text-xs">
                   <span className="font-mono font-medium text-danger">
-                    {se.role}[{se.subtask_idx}]
+                    {roleLabel(se.role)}[{se.subtask_idx}]
                   </span>
                   {se.worker_id && (
                     <Link

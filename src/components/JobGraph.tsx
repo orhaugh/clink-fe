@@ -4,6 +4,7 @@ import {
   BackgroundVariant,
   Controls,
   Handle,
+  Panel,
   Position,
   ReactFlow,
   useEdgesState,
@@ -51,6 +52,10 @@ function bpColor(ratio: number): string {
 function nodeHeight(node: GraphNode): number {
   return 86 + (node.subtasks.length > 0 ? 30 : 0)
 }
+
+// How the view fits the graph: never below half size, so a large statement set
+// opens readable and is panned, rather than shrunk until no label can be read.
+const FIT = { padding: 0.15, minZoom: 0.5 }
 
 function OperatorNode({ data }: NodeProps) {
   const { node, stats, rate } = data as OpData
@@ -239,7 +244,7 @@ export function JobGraph({
     const laid = layout(graph)
     setNodes(laid.nodes)
     setEdges(laid.edges)
-    const id = requestAnimationFrame(() => rf.current?.fitView({ padding: 0.15 }))
+    const id = requestAnimationFrame(() => rf.current?.fitView(FIT))
     return () => cancelAnimationFrame(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topoKey])
@@ -277,18 +282,26 @@ export function JobGraph({
         onNodeClick={(_e, n) => onSelect?.(n.id)}
         onInit={(inst) => {
           rf.current = inst
-          inst.fitView({ padding: 0.15 })
+          inst.fitView(FIT)
         }}
         nodeTypes={nodeTypes}
         colorMode="dark"
-        proOptions={{ hideAttribution: true }}
         minZoom={0.2}
         maxZoom={1.5}
         nodesConnectable={false}
         edgesFocusable={false}
+        // The wheel scrolls the page, as it does everywhere else on it; zooming
+        // takes Ctrl or Cmd with the wheel, or a pinch. A canvas that took the
+        // wheel for itself stopped the page scrolling past it.
+        preventScrolling={false}
+        zoomOnScroll={false}
+        zoomActivationKeyCode={['Control', 'Meta']}
       >
         <Background variant={BackgroundVariant.Dots} gap={18} size={1} color="hsl(217 20% 22%)" />
         <Controls showInteractive={false} />
+        <Panel position="top-right" className="text-[10px] text-muted-foreground">
+          Drag to pan. Ctrl or Cmd and scroll to zoom.
+        </Panel>
       </ReactFlow>
     </div>
   )

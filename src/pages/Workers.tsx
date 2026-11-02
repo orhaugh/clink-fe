@@ -112,8 +112,10 @@ export function Workers() {
                       <Link
                         to={`/workers/${t.worker_id}`}
                         className="text-muted-foreground hover:text-primary"
+                        aria-label={`Open worker ${t.worker_id}`}
+                        title={`Open worker ${t.worker_id}`}
                       >
-                        <ExternalLink className="h-4 w-4" />
+                        <ExternalLink className="h-4 w-4" aria-hidden="true" />
                       </Link>
                     </TableCell>
                   </TableRow>

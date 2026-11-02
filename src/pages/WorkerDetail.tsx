@@ -26,6 +26,7 @@ import { JobLink } from '@/components/JobLink'
 import { LogViewer } from '@/components/LogViewer'
 import { MetricsPanel } from '@/components/MetricsPanel'
 import { fmtMs } from '@/lib/format'
+import { roleHint, roleLabel } from '@/lib/roles'
 
 export function WorkerDetail() {
   const { id = '' } = useParams()
@@ -111,7 +112,9 @@ export function WorkerDetail() {
                             <TableCell>
                               <JobLink id={s.job_id} name={jobNames.get(s.job_id)} />
                             </TableCell>
-                            <TableCell className="font-mono text-xs">{s.role}</TableCell>
+                            <TableCell className="font-mono text-xs" title={roleHint(s.role)}>
+                              {roleLabel(s.role)}
+                            </TableCell>
                             <TableCell className="tabular-nums">{s.subtask_idx}</TableCell>
                             <TableCell>
                               <SubtaskStatusBadge status={s.status} />
@@ -151,6 +154,7 @@ export function WorkerDetail() {
                 isLoading={metrics.isLoading}
                 isError={metrics.isError}
                 error={metrics.error}
+                scope="worker"
               />
             </TabsContent>
 
