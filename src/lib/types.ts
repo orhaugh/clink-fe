@@ -40,6 +40,10 @@ export interface JobSummary {
   // The checkpoint a graceful stop ended the job at; 0 or absent when it was not
   // stopped (absent on a coordinator before clink 0.15).
   stopped_at_checkpoint_id?: number
+  // True for a job that ended under an earlier Coordinator and is known to this
+  // one only from its history record (clink 0.15 on): it has no subtasks,
+  // graph, lineage or checkpoint configuration to show, and no progress.
+  from_history?: boolean
   // The name the job was submitted with (a SQL job's ?name=, a compiled job's
   // name). Empty for an unnamed job; absent on a coordinator that predates it.
   name?: string
@@ -78,6 +82,7 @@ export interface SubtaskErrorRecord {
 export interface JobDetail {
   id: number
   stopped_at_checkpoint_id?: number // as JobSummary
+  from_history?: boolean // as JobSummary
   // The name the job was submitted with (a SQL job's ?name=, a compiled job's
   // name). Empty for an unnamed job; absent on a coordinator that predates it.
   name?: string

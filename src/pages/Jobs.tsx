@@ -79,7 +79,7 @@ export function Jobs() {
                         <JobProgressBar job={j} />
                       </TableCell>
                       <TableCell className="tabular-nums text-muted-foreground">
-                        {j.completed_count}/{j.expected_completion}
+                        {j.from_history ? '-' : `${j.completed_count}/${j.expected_completion}`}
                       </TableCell>
                       <TableCell
                         className={

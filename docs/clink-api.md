@@ -60,11 +60,11 @@ ClusterSnapshot { version?, bind_host, advertise_host, control_port, total_slot_
                   slots_in_use, jobs_total, jobs_running, jobs_completed,
                   workers: WorkerSummary[] }
 JobSummary   { id, name?, expected_completion, completed_count, completion_signalled,
-               cancel_requested, error_count,
+               cancel_requested, error_count, stopped_at_checkpoint_id?, from_history?,
                status,                                 // RUNNING | COMPLETED_OK | FAILED | CANCELLED
                delivery_guarantee, guarantee_limiting_factor }
 JobDetail    { id, name?, expected_completion, completed_count, completion_signalled,
-               cancel_requested, errors: string[],
+               cancel_requested, errors: string[], stopped_at_checkpoint_id?, from_history?,
                subtask_errors: { role, subtask_idx, worker_id, attempt, ts_ms, message }[],
                tasks: { role, subtask_idx, worker_id }[],
                latest_completed_checkpoint_id, pending_checkpoint_ids: number[],
@@ -101,7 +101,16 @@ has a source with `boundedness: "unbounded"` is shown as streaming instead
 
 `status` is the coordinator's own verdict; `deriveJobState` uses it when
 present and reconstructs it from `error_count`/`errors`, `cancel_requested`
-and `completion_signalled` on a coordinator that predates the field.
+and `completion_signalled` on a coordinator that predates the field. A
+non-zero `stopped_at_checkpoint_id` (clink 0.15 on) is the checkpoint a
+graceful stop ended the job at; such a job reports `COMPLETED_OK` and reads
+as stopped.
+
+`from_history` (clink 0.15 on) marks a job that ended under an earlier
+Coordinator and is known to this one only from its history record. It has
+no tasks, graph, lineage or checkpoint configuration: the jobs list shows a
+dash for its progress, and its page shows the record (how it ended, its
+errors and checkpoints) without asking for the graph or the lineage.
 
 `delivery_guarantee` is the end-to-end level the coordinator's analyser
 computed when the job was submitted, the weakest link across source,

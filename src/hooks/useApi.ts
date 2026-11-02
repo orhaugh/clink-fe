@@ -89,12 +89,13 @@ export const useJobOperators = (id: number, enabled = true) =>
 // reports it, it never changes over a job's life: fetch once, no polling. Until
 // it is available (the job's graph not yet retained) keep asking, and the
 // coordinator.job_lineage SSE event invalidates it as well (see useEvents).
-export const useJobLineage = (id: number) =>
+export const useJobLineage = (id: number, enabled = true) =>
   useQuery({
     queryKey: qk.jobLineage(id),
     queryFn: ({ signal }) => api.jobLineage(id, signal),
     staleTime: Infinity,
     refetchInterval: (q) => (q.state.data?.available ? false : 5000),
+    enabled,
   })
 
 export const useWorkers = () =>

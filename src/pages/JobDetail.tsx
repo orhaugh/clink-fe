@@ -58,7 +58,7 @@ import {
 import { ErrorState, LoadingState, EmptyState } from '@/components/States'
 import { JobStateBadge } from '@/components/StatusBadge'
 import { toast } from '@/components/ui/sonner'
-import { deriveJobState, type JobDetail as JobDetailT } from '@/lib/types'
+import { deriveJobState, type JobDetail as JobDetailT, type JobState } from '@/lib/types'
 import { fmtDateTime } from '@/lib/format'
 import { roleHint, roleLabel } from '@/lib/roles'
 
@@ -66,30 +66,23 @@ export function JobDetail() {
   const { id = '0' } = useParams()
   const jobId = Number(id)
   const job = useJob(jobId)
-  // Shared with the lineage and endpoint panels below: one request per job.
-  const lineage = useJobLineage(jobId)
+  // Shared with the lineage and endpoint panels below: one request per job. A
+  // job known only from its history record has no lineage to ask for.
+  const lineage = useJobLineage(jobId, job.data !== undefined && !job.data.from_history)
 
   if (job.isError) return <ErrorState error={job.error} />
   if (job.isLoading || !job.data) return <LoadingState />
 
   const j = job.data
   const state = deriveJobState(j)
+  if (j.from_history) return <JobRecord job={j} state={state} />
   const progress = jobProgress(j, lineage.data)
   const guarantee = describeJobGuarantee(j.delivery_guarantee)
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={
-          <span className="flex items-center gap-3">
-            <Link to="/jobs" className="text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <span className="font-mono">Job #{j.id}</span>
-            {j.name ? <span className="text-muted-foreground">{j.name}</span> : null}
-            <JobStateBadge state={state} />
-          </span>
-        }
+        title={<JobTitle job={j} state={state} />}
         actions={<JobActions job={j} running={state === 'running'} />}
       />
 
@@ -99,14 +92,18 @@ export function JobDetail() {
           value={
             progress.kind === 'streaming' ? (
               <span title={STREAMING_HINT}>streaming</span>
-            ) : (
+            ) : progress.kind === 'share' ? (
               `${progress.pct}%`
+            ) : (
+              '-'
             )
           }
           sub={
             progress.kind === 'streaming'
               ? 'runs until it is stopped'
-              : `${progress.done}/${progress.total} subtasks`
+              : progress.kind === 'share'
+                ? `${progress.done}/${progress.total} subtasks`
+                : ''
           }
           tone="info"
         />
@@ -193,6 +190,58 @@ export function JobDetail() {
           )}
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+function JobTitle({ job: j, state }: { job: JobDetailT; state: JobState }) {
+  return (
+    <span className="flex items-center gap-3">
+      <Link to="/jobs" className="text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="h-5 w-5" />
+      </Link>
+      <span className="font-mono">Job #{j.id}</span>
+      {j.name ? <span className="text-muted-foreground">{j.name}</span> : null}
+      <JobStateBadge state={state} />
+    </span>
+  )
+}
+
+// A job that ended under an earlier Coordinator: this one read back its history
+// record and nothing else, so there is no graph, subtask, lineage or
+// configuration to show, and no action to take.
+function JobRecord({ job: j, state }: { job: JobDetailT; state: JobState }) {
+  const stoppedAt = j.stopped_at_checkpoint_id ?? 0
+  return (
+    <div className="space-y-6">
+      <PageHeader title={<JobTitle job={j} state={state} />} />
+      <Card>
+        <CardHeader>
+          <CardTitle>Known from its record</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          This job ended under an earlier Coordinator. This one keeps its record: how it ended, its
+          errors and its checkpoints. Its graph, subtasks and configuration ended with it.
+        </CardContent>
+      </Card>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <StatCard
+          label="Latest checkpoint"
+          value={j.latest_completed_checkpoint_id || '-'}
+          icon={GitCommitHorizontal}
+        />
+        <StatCard
+          label="Stopped at"
+          value={stoppedAt || '-'}
+          sub={stoppedAt > 0 ? 'a graceful stop' : 'not stopped'}
+        />
+        <StatCard
+          label="Failures"
+          value={j.errors.length}
+          tone={j.errors.length > 0 ? 'danger' : 'ok'}
+        />
+      </div>
+      <FailuresPanel job={j} />
     </div>
   )
 }

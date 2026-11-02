@@ -30,6 +30,23 @@ const lineage = (...boundedness: string[]): JobLineage => ({
   },
 })
 
+describe('a job known only from its history record', () => {
+  // A Coordinator that took over lists a job that ended under an earlier one
+  // from its record alone: there are no subtasks to count, so the 0/0 share a
+  // record carries would read as a job that made no progress.
+  it('shows a record, not a share or a stream', () => {
+    const record = job({
+      from_history: true,
+      expected_completion: 0,
+      completed_count: 0,
+      completion_signalled: true,
+      status: 'COMPLETED_OK',
+    })
+    expect(jobProgress(record, undefined)).toEqual({ kind: 'record' })
+    expect(jobProgress(record, lineage('unbounded'))).toEqual({ kind: 'record' })
+  })
+})
+
 describe('hasUnboundedSource', () => {
   it('is true when any source is unbounded', () => {
     expect(hasUnboundedSource(lineage('bounded', 'unbounded'))).toBe(true)

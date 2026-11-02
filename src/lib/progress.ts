@@ -12,7 +12,12 @@ import { deriveJobState, type JobLineage, type JobSummary } from './types'
 // The fields a job summary and a job detail share that progress reads.
 export type ProgressInput = Pick<
   JobSummary,
-  'completed_count' | 'expected_completion' | 'cancel_requested' | 'completion_signalled' | 'status'
+  | 'completed_count'
+  | 'expected_completion'
+  | 'cancel_requested'
+  | 'completion_signalled'
+  | 'status'
+  | 'from_history'
 > & { error_count?: number; errors?: string[] }
 
 // True when the job's lineage names a source the engine classifies as
@@ -28,11 +33,19 @@ export const STREAMING_HINT =
   'Reads an unbounded source, so it runs until it is stopped and finishes no subtask while it runs.'
 
 export type ProgressView =
-  { kind: 'streaming'; total: number } | { kind: 'share'; pct: number; done: number; total: number }
+  | { kind: 'streaming'; total: number }
+  | { kind: 'share'; pct: number; done: number; total: number }
+  | { kind: 'record' }
+
+// Shown on hover for a job known only from its history record.
+export const RECORD_HINT =
+  'Ended under an earlier Coordinator; this one keeps only its record, not its subtasks.'
 
 // A running job with an unbounded source is streaming; every other job, and
-// any job once it has stopped, shows its share of finished subtasks.
+// any job once it has stopped, shows its share of finished subtasks. A job
+// known only from its history record has no subtasks to count.
 export function jobProgress(j: ProgressInput, lineage: JobLineage | undefined): ProgressView {
+  if (j.from_history) return { kind: 'record' }
   const done = j.completed_count
   const total = j.expected_completion
   if (deriveJobState(j) === 'running' && hasUnboundedSource(lineage)) {
