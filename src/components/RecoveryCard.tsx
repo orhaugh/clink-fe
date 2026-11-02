@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { GuaranteeBadge } from '@/components/StatusBadge'
 import { describeJobGuarantee } from '@/lib/guarantees'
 import { fmtMs } from '@/lib/format'
+import { describeRestarts } from '@/lib/recovery'
 import type { JobDetail } from '@/lib/types'
 
 // What the job is actually running with, and what the coordinator's analyser
@@ -82,7 +83,7 @@ export function RecoveryCard({ job }: { job: JobDetail }) {
             </Field>
             <Field label="Barrier mode">{checkpointing ? barrierMode : '-'}</Field>
             <Field label="Restarts on worker loss" mono>
-              {job.max_restarts_on_worker_loss ?? '-'}
+              {describeRestarts(job)}
             </Field>
             <Field label="Restored from" mono>
               {job.restore_from_dir

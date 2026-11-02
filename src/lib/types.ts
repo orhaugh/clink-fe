@@ -37,6 +37,9 @@ export interface ClusterSnapshot {
 
 export interface JobSummary {
   id: number
+  // The checkpoint a graceful stop ended the job at; 0 or absent when it was not
+  // stopped (absent on a coordinator before clink 0.15).
+  stopped_at_checkpoint_id?: number
   // The name the job was submitted with (a SQL job's ?name=, a compiled job's
   // name). Empty for an unnamed job; absent on a coordinator that predates it.
   name?: string
@@ -74,6 +77,7 @@ export interface SubtaskErrorRecord {
 
 export interface JobDetail {
   id: number
+  stopped_at_checkpoint_id?: number // as JobSummary
   // The name the job was submitted with (a SQL job's ?name=, a compiled job's
   // name). Empty for an unnamed job; absent on a coordinator that predates it.
   name?: string
@@ -97,6 +101,9 @@ export interface JobDetail {
   restore_from_dir?: string // empty = a fresh start
   restore_from_checkpoint_id?: number
   max_restarts_on_worker_loss?: number
+  // clink 0.15 on: the job left the restart budget to the default, which
+  // max_restarts_on_worker_loss reports resolved.
+  max_restarts_on_worker_loss_auto?: boolean
   unaligned_checkpoints?: boolean
   adaptive_barrier_mode?: boolean // the coordinator picks aligned/unaligned per trigger
   // As JobSummary, plus the analyser's full reasoning and its warnings.
@@ -406,7 +413,9 @@ export interface SqlResult {
 // `status` (RUNNING / COMPLETED_OK / FAILED / CANCELLED); that wins when
 // present, and the flags reconstruct it on a coordinator that predates the
 // field, with the same precedence (failed > cancelled > completed > running).
-export type JobState = 'running' | 'completed' | 'cancelled' | 'failed'
+// A job a graceful stop ended (stopped_at_checkpoint_id, clink 0.15 on) reports
+// COMPLETED_OK, the same as one that ran out of input, and reads as stopped.
+export type JobState = 'running' | 'completed' | 'stopped' | 'cancelled' | 'failed'
 
 const SERVER_STATUS: Record<string, JobState> = {
   RUNNING: 'running',
@@ -421,12 +430,14 @@ export function deriveJobState(j: {
   error_count?: number
   errors?: string[]
   status?: string
+  stopped_at_checkpoint_id?: number
 }): JobState {
   const reported = j.status ? SERVER_STATUS[j.status] : undefined
-  if (reported) return reported
+  const stopped = (j.stopped_at_checkpoint_id ?? 0) > 0
+  if (reported) return reported === 'completed' && stopped ? 'stopped' : reported
   const errs = j.error_count ?? j.errors?.length ?? 0
   if (errs > 0) return 'failed'
   if (j.cancel_requested) return 'cancelled'
-  if (j.completion_signalled) return 'completed'
+  if (j.completion_signalled) return stopped ? 'stopped' : 'completed'
   return 'running'
 }

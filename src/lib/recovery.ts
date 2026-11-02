@@ -115,3 +115,20 @@ function fmtInterval(ms: number): string {
   const s = ms / 1000
   return Number.isInteger(s) ? `${s}s` : `${s.toFixed(1)}s`
 }
+
+// The raw "auto" sentinel (UINT32_MAX) a coordinator before clink 0.15 reported
+// in place of the restart budget it resolves to.
+const RESTARTS_AUTO_SENTINEL = 4_294_967_295
+
+// The restart budget as the recovery card shows it: the number, marked auto
+// when the default chose it; "auto" alone from an older coordinator, which sent
+// the unresolved sentinel; '-' when the coordinator reports nothing.
+export function describeRestarts(job: {
+  max_restarts_on_worker_loss?: number
+  max_restarts_on_worker_loss_auto?: boolean
+}): string {
+  const n = job.max_restarts_on_worker_loss
+  if (n == null) return '-'
+  if (n === RESTARTS_AUTO_SENTINEL) return 'auto'
+  return job.max_restarts_on_worker_loss_auto ? `${n} (auto)` : String(n)
+}

@@ -11,6 +11,7 @@ const jobVariant: Record<
 > = {
   running: { variant: 'info', dot: 'bg-info animate-pulse-dot', label: 'Running' },
   completed: { variant: 'ok', dot: 'bg-ok', label: 'Completed' },
+  stopped: { variant: 'muted', dot: 'bg-ok', label: 'Stopped' },
   failed: { variant: 'danger', dot: 'bg-danger', label: 'Failed' },
   cancelled: { variant: 'muted', dot: 'bg-muted-foreground', label: 'Cancelled' },
 }

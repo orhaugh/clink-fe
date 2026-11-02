@@ -72,7 +72,8 @@ JobDetail    { id, name?, expected_completion, completed_count, completion_signa
                // the checkpoint configuration the job is RUNNING with
                checkpoint_dir, checkpoint_interval_ms, state_backend_uri,
                restore_from_dir, restore_from_checkpoint_id,
-               max_restarts_on_worker_loss, unaligned_checkpoints, adaptive_barrier_mode,
+               max_restarts_on_worker_loss (the effective budget), max_restarts_on_worker_loss_auto
+               (clink 0.15 on: the default chose it), unaligned_checkpoints, adaptive_barrier_mode,
                // the analyser's verdict at submit, and why
                delivery_guarantee, guarantee_limiting_factor,
                guarantee_reasons: string[], guarantee_warnings: string[] }

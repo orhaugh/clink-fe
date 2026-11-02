@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   appendRecoveryParams,
   describeRecovery,
+  describeRestarts,
   hasRecoveryOptions,
   normaliseRecovery,
 } from './recovery'
@@ -124,5 +125,18 @@ describe('describeRecovery', () => {
     expect(describeRecovery({ checkpoint_dir: '/c' })).toBe(
       "checkpoint to /c at the coordinator's default interval",
     )
+  })
+})
+
+describe('describeRestarts', () => {
+  it('marks a budget the default chose, and reads the raw sentinel an older coordinator sent', () => {
+    expect(
+      describeRestarts({ max_restarts_on_worker_loss: 10, max_restarts_on_worker_loss_auto: true }),
+    ).toBe('10 (auto)')
+    expect(
+      describeRestarts({ max_restarts_on_worker_loss: 3, max_restarts_on_worker_loss_auto: false }),
+    ).toBe('3')
+    expect(describeRestarts({ max_restarts_on_worker_loss: 4_294_967_295 })).toBe('auto')
+    expect(describeRestarts({})).toBe('-')
   })
 })

@@ -52,4 +52,15 @@ describe('deriveJobState', () => {
     expect(deriveJobState({ ...base, status: '', completion_signalled: true })).toBe('completed')
     expect(deriveJobState({ ...base, status: 'SOMETHING_NEW', error_count: 2 })).toBe('failed')
   })
+
+  it('reads a job a graceful stop ended as stopped, not completed', () => {
+    const stopped = { ...base, completion_signalled: true, stopped_at_checkpoint_id: 7 }
+    expect(deriveJobState({ ...stopped, status: 'COMPLETED_OK' })).toBe('stopped')
+    expect(deriveJobState(stopped)).toBe('stopped')
+    // A failure still reads as one, and an unstopped job as completed.
+    expect(deriveJobState({ ...stopped, status: 'FAILED' })).toBe('failed')
+    expect(
+      deriveJobState({ ...stopped, stopped_at_checkpoint_id: 0, status: 'COMPLETED_OK' }),
+    ).toBe('completed')
+  })
 })
