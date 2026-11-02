@@ -193,6 +193,38 @@ describe('endpointRows', () => {
     expect(endpointRows(graph, ops, unavailable, connectors)[1].datasets).toEqual([])
   })
 
+  it('gives a source the watermark of the operator downstream that assigns it', () => {
+    // n0 (source) -> n1 (the assigner) -> n2 (sink); only the assigner has a watermark.
+    const chained: JobGraphDetail = {
+      ...graph,
+      edges: [
+        { from: 'n0', to: 'n1', routing: 'forward', channel: 'row' },
+        { from: 'n1', to: 'n2', routing: 'forward', channel: 'row' },
+      ],
+    }
+    const withAssigner: JobOperators = {
+      ...ops,
+      operators: [
+        runtime('n0'),
+        runtime('n1', { has_watermark: true, watermark_ms: 1_700_000_000_000 }),
+        runtime('n2'),
+      ],
+    }
+    const rows = endpointRows(chained, withAssigner, lineage, connectors)
+    expect(rows[0]).toMatchObject({ watermarkMs: 1_700_000_000_000, watermarkVia: 'n1' })
+    // A sink shows only its own, and a source with its own keeps it.
+    expect(rows[1].watermarkMs).toBeUndefined()
+    const own: JobOperators = {
+      ...ops,
+      operators: [runtime('n0', { has_watermark: true, watermark_ms: 5 }), runtime('n2')],
+    }
+    const kept = endpointRows(chained, own, lineage, connectors)[0]
+    expect(kept.watermarkMs).toBe(5)
+    expect(kept.watermarkVia).toBeUndefined()
+    // No operator downstream reports one: nothing to show.
+    expect(endpointRows(chained, ops, lineage, connectors)[0].watermarkMs).toBeUndefined()
+  })
+
   it('is empty without a retained topology', () => {
     expect(endpointRows(undefined, ops, lineage, connectors)).toEqual([])
     expect(endpointRows({ ...graph, available: false }, ops, lineage, connectors)).toEqual([])

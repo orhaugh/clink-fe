@@ -75,6 +75,12 @@ export interface EndpointRow {
   datasets: LineageDataset[]
   boundedness?: string
   stats?: OperatorRuntime
+  // A source's event time: its own watermark, or, when it emits none, that of the
+  // first operator downstream that does, which is where a SQL source's
+  // watermarks come from (the assigner its WATERMARK clause plans after it).
+  // watermarkVia names that operator; absent when the source's own was used.
+  watermarkMs?: number
+  watermarkVia?: string
 }
 
 export function endpointRows(
@@ -99,6 +105,28 @@ export function endpointRows(
     }
   }
 
+  const downstream = new Map<string, string[]>()
+  for (const e of graph.edges) downstream.set(e.from, [...(downstream.get(e.from) ?? []), e.to])
+  // The nearest operator at or below `id` that reports a watermark, breadth first.
+  const nearestWatermark = (id: string): OperatorRuntime | undefined => {
+    const seen = new Set<string>([id])
+    for (let frontier = [id]; frontier.length > 0;) {
+      const next: string[] = []
+      for (const at of frontier) {
+        const s = statsByNode.get(at)
+        if (s?.has_watermark && s.watermark_ms != null) return s
+        for (const to of downstream.get(at) ?? []) {
+          if (!seen.has(to)) {
+            seen.add(to)
+            next.push(to)
+          }
+        }
+      }
+      frontier = next
+    }
+    return undefined
+  }
+
   const rows: EndpointRow[] = []
   for (const n of graph.nodes) {
     if (n.kind !== 'source' && n.kind !== 'sink') continue
@@ -113,7 +141,18 @@ export function endpointRows(
       datasets: lin?.datasets ?? [],
       boundedness: lin?.boundedness,
       stats: statsByNode.get(n.id),
+      ...watermarkOf(n.id, n.kind),
     })
+  }
+  function watermarkOf(
+    id: string,
+    kind: string,
+  ): Pick<EndpointRow, 'watermarkMs' | 'watermarkVia'> {
+    const own = statsByNode.get(id)
+    if (own?.has_watermark && own.watermark_ms != null) return { watermarkMs: own.watermark_ms }
+    if (kind !== 'source') return {}
+    const via = nearestWatermark(id)
+    return via ? { watermarkMs: via.watermark_ms, watermarkVia: via.node } : {}
   }
   // Sources first, each group in topology order.
   return [...rows.filter((r) => r.kind === 'source'), ...rows.filter((r) => r.kind === 'sink')]

@@ -15,7 +15,6 @@ import { DeliveryBadge } from '@/components/StatusBadge'
 import { EmptyState } from '@/components/States'
 import { datasetLabel, endpointRows, type EndpointRow } from '@/lib/endpoints'
 import { fmtCount, fmtRate, fmtTime } from '@/lib/format'
-import type { OperatorRuntime } from '@/lib/types'
 
 // The job's sources and sinks in one table: the connector each one was built
 // on and the delivery that connector declares, the external dataset it reads
@@ -149,7 +148,7 @@ function EndpointTableRow({ row, rate }: { row: EndpointRow; rate?: { in: number
         {perSec != null ? `${fmtRate(perSec)}/s` : <span className="text-muted-foreground">-</span>}
       </TableCell>
       <TableCell className="font-mono text-xs">
-        <Watermark stats={row.stats} />
+        <Watermark ms={row.watermarkMs} via={row.watermarkVia} />
       </TableCell>
     </TableRow>
   )
@@ -160,16 +159,18 @@ function EndpointTableRow({ row, rate }: { row: EndpointRow; rate?: { in: number
 // the year 2100 is shown as that rather than as a nonsense date.
 const MAX_SANE_WATERMARK_MS = 4_102_444_800_000
 
-function Watermark({ stats }: { stats?: OperatorRuntime }) {
-  if (!stats?.has_watermark || stats.watermark_ms == null) {
+function Watermark({ ms, via }: { ms?: number; via?: string }) {
+  if (ms == null) {
     return <span className="text-muted-foreground">-</span>
   }
-  if (!(stats.watermark_ms > 0) || stats.watermark_ms >= MAX_SANE_WATERMARK_MS) {
+  // Taken from the operator downstream that assigns the source's watermarks.
+  const title = via ? `from ` : undefined
+  if (!(ms > 0) || ms >= MAX_SANE_WATERMARK_MS) {
     return (
-      <span className="text-muted-foreground" title={String(stats.watermark_ms)}>
+      <span className="text-muted-foreground" title={via ? `: ` : String(ms)}>
         max
       </span>
     )
   }
-  return <>{fmtTime(stats.watermark_ms)}</>
+  return <span title={title}>{fmtTime(ms)}</span>
 }
