@@ -171,6 +171,9 @@ These were previously gaps; the clink backend now supports them:
   request through `lib/auth.ts`. `EventSource` cannot send a header, so with a
   token set `useEvents` reads `/api/v1/events` through fetch (`lib/sse.ts`) and
   reconnects with a back-off; without one it keeps `EventSource`.
+  The top bar reads a 401 from `/api/v1/health` the same way, as a token
+  required or, once one is set, refused (`lib/connection.ts`), and calls the
+  Coordinator unreachable only when a request fails for another reason.
 
 ## System metrics
 
